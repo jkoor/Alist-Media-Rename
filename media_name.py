@@ -18,7 +18,7 @@ class AlistMediaRename:
     """
 
     def __init__(self, alist_url: str, alist_user: str, alist_password: str,
-                 alist_totp: str, tmdb_key: str):
+                 alist_totp: str, tmdb_key: str, debug: bool = True):
         """
         初始化参数
         :param alist_url: Alist 主页链接
@@ -26,6 +26,7 @@ class AlistMediaRename:
         :param alist_password: Alist 登录密码
         :param alist_totp: Alist 2FA 验证码
         :param tmdb_key: TMDB Api Key(V3)
+        :param debug: debug模式, 输出信息更加详细
         """
 
         # ----Settings Start----
@@ -48,6 +49,7 @@ class AlistMediaRename:
         self.alist_password = alist_password
         self.alist_totp = alist_totp
         self.tmdb_key = tmdb_key
+        self.debug = debug
 
         # 初始化AlistApi类, TMDBApi类
         self.alist = AlistApi(self.alist_url, self.alist_user,
@@ -72,6 +74,9 @@ class AlistMediaRename:
         :return: 重命名请求结果
         """
 
+        if folder_path[-1] != '/':
+            folder_path += '/'
+
         # 设置返回数据
         result = dict(success=False,
                       args=dict(tv_id=tv_id,
@@ -94,7 +99,7 @@ class AlistMediaRename:
             tv_season_info = self.tmdb.tv_season_info(
                 tv_id,
                 tv_info_result['seasons'][0]['season_number'],
-                silent=True)
+                silent=self.debug)
             result['result'].append(tv_info_result)
             season_number = 1
             # 若获取失败则停止， 并返回结果
@@ -121,7 +126,7 @@ class AlistMediaRename:
             # 获取剧集对应季每集信息
             tv_season_info = self.tmdb.tv_season_info(tv_id,
                                                       season_number,
-                                                      silent=True)
+                                                      silent=self.debug)
             result['result'].append(tv_season_info)
             # 若获取失败则停止， 并返回结果
             if tv_season_info['request_code'] != 200:
@@ -144,7 +149,7 @@ class AlistMediaRename:
         file_list_data = self.alist.file_list(path=folder_path,
                                               password=folder_password,
                                               refresh=True,
-                                              silent=True)
+                                              silent=self.debug)
         result['result'].append(file_list_data)
         # 获取失败则停止，返回结果
         if file_list_data['message'] != 'success':
@@ -199,7 +204,7 @@ class AlistMediaRename:
             rename_result = self.alist.rename(file['target_name'],
                                               folder_path +
                                               file['original_name'],
-                                              silent=True)
+                                              silent=self.debug)
             result['result'].append(rename_result)
             if rename_result['message'] != 'success':
                 # 若部分文件命名失败， 则将success参数设为False， 并输出失败原因
@@ -213,7 +218,7 @@ class AlistMediaRename:
         file_list_data = self.alist.file_list(path=folder_path,
                                               password=folder_password,
                                               refresh=True,
-                                              silent=True)
+                                              silent=self.debug)
         result['result'].append(file_list_data)
         return result
 
