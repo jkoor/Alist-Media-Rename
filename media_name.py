@@ -33,20 +33,20 @@ class AlistMediaRename:
         :param alist_password: Alist 登录密码
         :param alist_totp: Alist 2FA 验证码
         :param tmdb_key: TMDB Api Key(V3)
-        :param debug: debug模式, 输出信息更加详细
+        :param debug: debug模式, 输出信息更加详细, ※True为关闭debug, False为开启debug
         """
 
         # ----Settings Start----
         # TMDB 搜索语言
         self.tmdb_language = "zh-CN"
         # 文件重命名格式
-        self.filename_format = "{name}-S{season:0>2}E{episode:0>2}.{title}"
+        self.tv_name_format = "{name}-S{season:0>2}E{episode:0>2}.{title}"
         # 是否重命名父文件夹名称
         self.media_folder_rename = False
         # 是否创建对应季文件夹，并将剧集文件移动到其中
-        self.media_season_dir = False
+        self.tv_season_dir = False
         # 季度文件夹命名格式
-        self.media_season_format = "Season {season}"
+        self.tv_season_format = "Season {season}"
         # 需要识别的视频及字幕格式
         self.video_suffix_list = ['mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov']
         self.subtitle_suffix_list = ['srt', 'ass', 'stl']
@@ -58,6 +58,7 @@ class AlistMediaRename:
         self.alist_password = alist_password
         self.alist_totp = alist_totp
         self.tmdb_key = tmdb_key
+        # debug模式, 输出信息更加详细, ※True为关闭debug, False为开启debug
         self.debug = debug
 
         # 初始化AlistApi类, TMDBApi类
@@ -68,11 +69,11 @@ class AlistMediaRename:
                 input()
         self.tmdb = TMDBApi(self.tmdb_key)
 
-    def media_rename_id(self,
-                        tv_id: str,
-                        folder_path: str,
-                        folder_password=None,
-                        first_number: int = 1) -> dict:
+    def tv_rename_id(self,
+                     tv_id: str,
+                     folder_path: str,
+                     folder_password=None,
+                     first_number: int = 1) -> dict:
         """
         根据TMDB剧集id获取剧集标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为剧集标题.
 
@@ -121,7 +122,7 @@ class AlistMediaRename:
         else:
             # 获取到多项匹配结果，手动选择
             while True:
-                season_number = input("[Notice!] 该剧集有多季,请输入对应[序号], 输入n退出\t")
+                season_number = input("[Notice!] 该剧集有多季,请输入对应[序号], 输入[n]退出\t")
                 active_number = list(range(len(tv_info_result['seasons'])))
                 active_number = list(map(lambda x: str(x), active_number))
                 if season_number == 'n':
@@ -149,7 +150,7 @@ class AlistMediaRename:
         # 保存剧集标题
         episodes = list(
             map(
-                lambda x: self.filename_format.format(
+                lambda x: self.tv_name_format.format(
                     name=tv_info_result['name'], season=tv_season_info['season_number'], episode=x[
                         'episode_number'], title=x['name']),
                 tv_season_info['episodes']))
@@ -200,15 +201,15 @@ class AlistMediaRename:
         if self.media_folder_rename:
             tv_folder_name = f"{tv_info_result['name']} ({tv_info_result['first_air_date'][:4]})"
             print("\n[Notice!] 文件夹重命名: {} -> {}".format(folder_path.split('/')[-2], tv_folder_name))
-        if self.media_season_dir:
-            season_dir_name = self.media_season_format.format(season=season_number)
-            print("[Notice!] 剧集文件将移动到{}".format(season_dir_name))
+        if self.tv_season_dir:
+            season_dir_name = self.tv_season_format.format(season=season_number)
+            print("[Notice!] 剧集文件将移动到[{}]".format(season_dir_name))
 
         # 用户确认
         print("")
         while True:
-            signal = input("[Notice!] 确定要重命名吗? 输入y确定, n取消\t")
-            if signal.lower() == 'y':
+            signal = input("[Notice!] 确定要重命名吗? [回车]确定, [n]取消\t")
+            if signal.lower() == '':
                 break
             elif signal.lower() == 'n':
                 result['result'].append("用户输入[n], 已主动取消重命名")
@@ -241,10 +242,11 @@ class AlistMediaRename:
         result['result'].append(file_list_data)
 
         # 创建季度文件夹, 并将该季度剧集移动到相应季度中 格式: Season 1
-        if self.media_season_dir:
+        if self.tv_season_dir:
             season_path = folder_path + season_dir_name
             # 获取修改后文件列表
-            move_list = list(map(lambda x: x['target_name'], video_rename_list)) + list(map(lambda x: x['target_name'], subtitle_rename_list))
+            move_list = list(map(lambda x: x['target_name'], video_rename_list)) + list(
+                map(lambda x: x['target_name'], subtitle_rename_list))
             season_mkdir_result = self.alist.mkdir(season_path)
             result['result'].append(season_mkdir_result)
             season_dir_remove_result = self.alist.move(move_list, folder_path, season_path, silent=False)
@@ -256,11 +258,11 @@ class AlistMediaRename:
 
         return result
 
-    def media_rename_keyword(self,
-                             keyword: str,
-                             folder_path: str,
-                             folder_password=None,
-                             first_number: int = 1) -> dict:
+    def tv_rename_keyword(self,
+                          keyword: str,
+                          folder_path: str,
+                          folder_password=None,
+                          first_number: int = 1) -> dict:
         """
         根据TMDB剧集id获取剧集标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为剧集标题.
 
@@ -288,7 +290,7 @@ class AlistMediaRename:
 
         # 若查找结果只有一项, 则继续进行, 无需选择
         if len(search_result['results']) == 1:
-            rename_result = self.media_rename_id(
+            rename_result = self.tv_rename_id(
                 search_result['results'][0]['id'], folder_path,
                 folder_password, first_number)
             result['result'] += (rename_result['result'])
@@ -296,7 +298,7 @@ class AlistMediaRename:
 
         # 若有多项, 则手动选择
         while True:
-            tv_number = input("[Notice!] 查找到多个结果, 请输入对应[序号], 输入n退出\t")
+            tv_number = input("[Notice!] 查找到多个结果, 请输入对应[序号], 输入[n]退出\t")
             active_number = list(range(len(search_result['results'])))
             active_number = list(map(lambda x: str(x), active_number))
             if tv_number == 'n':
@@ -309,7 +311,182 @@ class AlistMediaRename:
                 continue
 
         # 根据获取到的id进行重命名
-        rename_result = self.media_rename_id(tv_id, folder_path,
-                                             folder_password, first_number)
+        rename_result = self.tv_rename_id(tv_id, folder_path,
+                                          folder_password, first_number)
+        result['result'] += (rename_result['result'])
+        return result
+
+    def movie_rename_id(self,
+                        movie_id: str,
+                        folder_path: str,
+                        folder_password=None) -> dict:
+        """
+        根据TMDB电影id获取电影标题,并将Alist指定文件夹中的视频文件及字幕文件重命名为电影标题.
+
+        :param movie_id: 电影id
+        :param folder_path: 文件夹路径
+        :param folder_password: 文件夹访问密码
+        :return: 重命名请求结果
+        """
+
+        if folder_path[-1] != '/':
+            folder_path += '/'
+
+        # 设置返回数据
+        result = dict(success=False,
+                      args=dict(movie_id=movie_id, folder_path=folder_path, folder_password=folder_password, ),
+                      result=[])
+
+        # 根据电影id 查找TMDB电影信息
+        movie_info_result = self.tmdb.movie_info(movie_id, language=self.tmdb_language, silent=False)
+        result['result'].append(movie_info_result)
+
+        # 若查找失败则停止，并返回结果
+        if movie_info_result['request_code'] != 200:
+            return result
+
+        # 获取Alist文件列表
+        file_list_data = self.alist.file_list(path=folder_path,
+                                              password=folder_password,
+                                              refresh=True,
+                                              silent=self.debug)
+        result['result'].append(file_list_data)
+        # 获取失败则停止，返回结果
+        if file_list_data['message'] != 'success':
+            print("\n[Alist Failure✕] 文件列表路径: {0}\n{1}".format(
+                folder_path, file_list_data['message']))
+            return result
+
+        # 创建包含源文件名以及目标文件名列表
+        target_name = "{} ({})".format(movie_info_result['title'], movie_info_result['release_date'][:4])
+
+        file_list = list(map(lambda x: x['name'], file_list_data['file_list']))
+        video_list = list(
+            filter(lambda x: x.split(".")[-1] in self.video_suffix_list,
+                   file_list))
+        subtitle_list = list(
+            filter(lambda x: x.split(".")[-1] in self.subtitle_suffix_list,
+                   file_list))
+        video_rename_list = list(
+            map(
+                lambda x: dict(original_name=x,
+                               target_name=target_name + '.' + x.split(".")[-1]),
+                video_list))
+        subtitle_rename_list = list(
+            map(
+                lambda x: dict(original_name=x,
+                               target_name=target_name + '.' + x.split(".")[-1]),
+                subtitle_list))
+
+        # 输出提醒消息
+        print("\n[Notice!] 仅会将首个视频/字幕文件重命名:")
+        for video in video_rename_list:
+            print("{} -> {}".format(video['original_name'],
+                                    video['target_name']))
+            break
+        for subtitle in subtitle_rename_list:
+            print("{} -> {}".format(subtitle['original_name'],
+                                    subtitle['target_name']))
+            break
+
+        if self.media_folder_rename:
+            movie_folder_name = f"{movie_info_result['title']} ({movie_info_result['release_date'][:4]})"
+            print("\n[Notice!] 文件夹重命名: {} -> {}".format(folder_path.split('/')[-2], movie_folder_name))
+
+        # 用户确认
+        print("")
+        while True:
+            signal = input("[Notice!] 确定要重命名吗? [回车]确定, [n]取消\t")
+            if signal.lower() == '':
+                break
+            elif signal.lower() == 'n':
+                result['result'].append("用户输入[n], 已主动取消重命名")
+                return result
+            else:
+                continue
+
+        # 进行重命名操作
+        result['success'] = True
+        for files in video_rename_list, subtitle_rename_list:
+            for file in files:
+                rename_result = self.alist.rename(file['target_name'],
+                                                  folder_path + file['original_name'],
+                                                  silent=self.debug)
+                result['result'].append(rename_result)
+                if rename_result['message'] != 'success':
+                    # 若部分文件命名失败， 则将success参数设为False， 并输出失败原因
+                    result['success'] = False
+                    if self.debug:
+                        print("[Alist Failure✕] 重命名失败: {0} -> {1}\n{2}".format(
+                            file['target_name'], file['original_name'],
+                            rename_result['message']))
+                break
+
+        print("{:-<30}\n{}".format("", "文件重命名全部完成"))
+        # 刷新文件列表
+        file_list_data = self.alist.file_list(path=folder_path,
+                                              password=folder_password,
+                                              refresh=True,
+                                              silent=self.debug)
+        result['result'].append(file_list_data)
+
+        # 重命名父文件夹 格式: 复仇者联盟 (2012)
+        if self.media_folder_rename:
+            movie_folder_rename_result = self.alist.rename(movie_folder_name, folder_path, silent=False)
+            result['result'].append(movie_folder_rename_result)
+
+        return result
+
+    def movie_rename_keyword(self,
+                             keyword: str,
+                             folder_path: str,
+                             folder_password=None) -> dict:
+        """
+        根据TMDB电影关键字获取电影标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为电影标题.
+
+        :param keyword: 电影关键词
+        :param folder_path: 文件夹路径
+        :param folder_password: 文件夹访问密码
+        :return: 重命名请求结果
+        """
+
+        # 创建返回数据
+        result = dict(success=False,
+                      args=dict(keyword=keyword,
+                                folder_path=folder_path,
+                                folder_password=folder_password),
+                      result=[])
+        # 使用关键词查找剧集
+        search_result = self.tmdb.search_movie(keyword, language=self.tmdb_language)
+        result['result'].append(search_result)
+        # 查找失败则停止, 并返回结果
+        if search_result['request_code'] != 200 or len(
+                search_result['results']) == 0:
+            return result
+
+        # 若查找结果只有一项, 则继续进行, 无需选择
+        if len(search_result['results']) == 1:
+            rename_result = self.movie_rename_id(
+                search_result['results'][0]['id'], folder_path,
+                folder_password)
+            result['result'] += (rename_result['result'])
+            return result
+
+        # 若有多项, 则手动选择
+        while True:
+            movie_number = input("[Notice!] 查找到多个结果, 请输入对应[序号], 输入[n]退出\t")
+            active_number = list(range(len(search_result['results'])))
+            active_number = list(map(lambda x: str(x), active_number))
+            if movie_number == 'n':
+                result['result'].append("用户输入[n], 已主动退出选择匹配电影")
+                return result
+            elif movie_number in active_number:
+                movie_id = search_result['results'][int(movie_number)]['id']
+                break
+            else:
+                continue
+
+        # 根据获取到的id进行重命名
+        rename_result = self.movie_rename_id(movie_id, folder_path, folder_password)
         result['result'] += (rename_result['result'])
         return result

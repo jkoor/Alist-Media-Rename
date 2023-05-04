@@ -17,10 +17,10 @@ def load_config(config_path):
     # 若文件不存在则创建文件
     except FileNotFoundError:
         settings = dict(tmdb_language="zh-CN",
-                        filename_format="{name}-S{season:0>2}E{episode:0>2}.{title}",
                         media_folder_rename=False,
-                        media_season_dir=False,
-                        media_season_format="Season {season}",
+                        tv_name_format="{name}-S{season:0>2}E{episode:0>2}.{title}",
+                        tv_season_dir=False,
+                        tv_season_format="Season {season}",
                         video_suffix_list=['mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov'],
                         subtitle_suffix_list=['srt', 'ass', 'stl'])
 
@@ -53,7 +53,11 @@ def test():
 
     # amr.media_rename_id('42885', '/test/abc/123/4', '123')
     # amr.media_rename_keyword('刀剑神域', '/test/abc/123/4', '123')
-    amr.media_rename_keyword('从零开始', '/test/abc/123/4', '123')
+    # amr.media_rename_keyword('从零开始', '/test/abc/123/4', '123')
+    # amr.movie_rename_id('24428', '/test/abc/123/4', '123')
+    amr.movie_rename_keyword('复仇者联盟', '/test/abc/123/4', '123')
+    # amr.tmdb.movie_info('24428')
+    # amr.tmdb.search_movie('复仇者联盟')
 
 
 def main(arg):
@@ -67,10 +71,18 @@ def main(arg):
     for k in config['settings']:
         exec(f"amr.{k} = config['settings']['{k}']")
 
-    if arg['id']:
-        amr.media_rename_id(arg['keyword'], arg['dir'], arg['password'], arg['number'])
+    # TMDB搜索电影
+    if arg['movie']:
+        if arg['id']:
+            amr.movie_rename_id(arg['keyword'], arg['dir'], arg['password'])
+        else:
+            amr.movie_rename_keyword(arg['keyword'], arg['dir'], arg['password'])
+    # TMDB搜索剧集
     else:
-        amr.media_rename_keyword(arg['keyword'], arg['dir'], arg['password'], arg['number'])
+        if arg['id']:
+            amr.tv_rename_id(arg['keyword'], arg['dir'], arg['password'], arg['number'])
+        else:
+            amr.tv_rename_keyword(arg['keyword'], arg['dir'], arg['password'], arg['number'])
 
 
 def command() -> dict:
@@ -89,6 +101,7 @@ def command() -> dict:
     parser.add_argument("keyword", help="TMDB剧集查找字段")
     parser.add_argument("-d", "--dir", action='store', required=True, help="Alist剧集文件所在文件夹, 结尾需加/")
     parser.add_argument("-i", "--id", action="store_true", help="通过id搜索TMDB剧集信息(可选)")
+    parser.add_argument("-m", "--movie", action="store_true", help="搜索电影而不是剧集")
     parser.add_argument("-c", "--config", action="store", help="指定配置文件路径, 默认为程序所在路径(可选)",
                         default='./config.json')
     parser.add_argument("-p", "--password", action="store", help="文件访问密码(可选)")
@@ -99,6 +112,7 @@ def command() -> dict:
     return dict(keyword=args.keyword,
                 dir=args.dir,
                 id=args.id,
+                movie=args.movie,
                 config_path=args.config,
                 password=args.password,
                 number=args.number,

@@ -7,6 +7,8 @@
 import pyotp
 import requests
 from natsort import natsorted
+
+
 # from requests_toolbelt import MultipartEncoder
 
 
@@ -105,6 +107,11 @@ class AlistApi:
 
         # 整理排序文件列表
         if return_data['message'] == 'success':
+            # 若文件夹为空, 则停止运行
+            if return_data['data']['content'] is None:
+                return_data['message'] = "文件夹为空"
+                return return_data
+
             file_list = return_data['data']['content']
             file_list_0 = list(filter(lambda f: f['is_dir'] is True,
                                       file_list))
@@ -337,16 +344,22 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    # def upload(self, path: str, file: str, silent: bool = False) -> dict:
-    #     """
-    #     上传文件.
-    #
-    #     :param path: 上传路径(包含文件) 如/abc/test.txt
-    #     :param file: 源文件路径(包含文件) 如/abc/test.txt
-    #     :param silent: 静默返回请求结果,不输出内容
-    #     :return: 返回上传文件请求结果
-    #     """
-    #
+    def upload(self, path: str, file: str, silent: bool = False) -> dict:
+        """
+        上传文件.
+
+        :param path: 上传路径(包含文件) 如/abc/test.txt
+        :param file: 源文件路径(包含文件) 如/abc/test.txt
+        :param silent: 静默返回请求结果,不输出内容
+        :return: 返回上传文件请求结果
+        """
+
+        print("由于上传文件需要调用第三方库：requests_toolbelt, "
+              "而主程序又用不到上传操作, 所以该函数代码被注释掉了, "
+              "如有需要请取消代码注释, 并把最上方调用代码取消注释!")
+
+        return {'注意': '查看输出内容'}
+
     #     # 发送请求
     #     post_url = self.url + '/api/fs/put'
     #     upload_file = open(file, "rb")
@@ -557,8 +570,7 @@ class TMDBApi:
             return return_data
 
         # 格式化输出请求结果
-        print("\n[TMDB Success✓] {} 第 {} 季 ".format(return_data['name'],
-                                                    season_number))
+        print("\n[TMDB Success✓] {} 第 {} 季 ".format(return_data['name'], season_number))
         print("{:6}{:<12}{:<10}{}".format("序 号", "放映日期", "时 长", "标 题"))
         print("{:8}{:<16}{:<12}{}".format("----", "----------", "-----",
                                           "----------------"))
@@ -568,6 +580,89 @@ class TMDBApi:
                                                episode['air_date'],
                                                str(episode['runtime']) + 'min',
                                                episode['name']))
+
+        # 返回请求结果
+        return return_data
+
+    def movie_info(self, movie_id: str, language: str = 'zh-CN', silent: bool = False) -> dict:
+        """
+        根据提供的id获取电影信息.
+
+        :param movie_id: 电影id
+        :param language: TMDB搜索语言
+        :param silent: 静默返回请求结果, 不输出内容
+        :return: 请求状态码与电影信息请求结果
+        """
+
+        # 发送请求
+        post_url = "{0}/movie/{1}".format(self.api_url, movie_id)
+        post_params = dict(api_key=self.key, language=language)
+        r = requests.get(post_url, params=post_params)
+
+        # 获取请求结果
+        return_data = r.json()
+        return_data['request_code'] = r.status_code
+
+        # 静默返回请求结果,不输出内容
+        if silent:
+            return return_data
+
+        # 请求失败则输出失败信息
+        if r.status_code != 200:
+            print("[TMDB SearchID Failure✕] tv_id: {0}\n{1}".format(
+                movie_id, return_data['status_message']))
+            return return_data
+
+        # 格式化输出请求结果
+        print("\n[TMDB Success✓] {} {}".format(return_data['title'], return_data['release_date']))
+        print("[标语] {}".format(return_data['tagline']))
+        print("[剧集简介] {}".format(return_data['overview']))
+
+        # 返回请求结果
+        return return_data
+
+    def search_movie(self, keyword: str, language: str = 'zh-CN', silent: bool = False) -> dict:
+        """
+        根据关键字匹配电影, 获取相关信息.
+
+        :param keyword: 剧集搜索关键词
+        :param language:
+        :param silent: 静默返回请求结果,不输出内容
+        :return: 匹配剧集信息请求结果
+        """
+
+        # 发送请求
+        post_url = "{0}/search/movie".format(self.api_url)
+        post_params = dict(api_key=self.key, query=keyword, language=language)
+        r = requests.get(post_url, params=post_params)
+
+        # 获取请求结果
+        return_data = r.json()
+        return_data['request_code'] = r.status_code
+
+        # 静默返回请求结果,不输出内容
+        if silent:
+            return return_data
+
+        # 请求失败则输出失败信息
+        if r.status_code != 200:
+            print("[TMDB Failure✕] Keyword: {0}\n{1}".format(
+                keyword, return_data['status_message']))
+            return return_data
+
+        if len(return_data['results']) == 0:
+            print('[TMDB Failure✕] 关键词[{0}]查找不到任何相关剧集'.format(keyword))
+            return return_data
+
+        # 格式化输出请求结果
+        print('\n[TMDB Success✓] 关键词[{0}]查找结果如下: '.format(keyword))
+        print("{:<8}{:^14}{}".format(" 首播时间 ", "序号", "电影标题"))
+        print("{:<12}{:^16}{}".format("----------", "-----",
+                                      "----------------"))
+
+        for i, result in enumerate(return_data['results']):
+            print("{:<12}{:^16}{}".format(result['release_date'], i,
+                                          result['title']))
 
         # 返回请求结果
         return return_data
