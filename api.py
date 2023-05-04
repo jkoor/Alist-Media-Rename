@@ -13,6 +13,7 @@ from natsort import natsorted
 class AlistApi:
     """
     Alist请求函数, 包含: 登录/获取文件列表/重命名文件/删除文件/新建文件夹/上传文件/获取下载链接/获取存储驱动信息
+    \nAlist api非官方说明文档(来自网友分享): https://zhuanlan.zhihu.com/p/587004798
     """
 
     def __init__(self, url: str, user: str, password: str, totp_code: str):
@@ -24,7 +25,8 @@ class AlistApi:
         :param password: Alist 登录密码
         :param totp_code: Alist 2FA 验证码
         """
-
+        if url[-1] == '/':
+            url = url[:-1]
         self.url = url
         self.user = user
         self.password = password
@@ -190,9 +192,9 @@ class AlistApi:
         # 输出重命名结果
         if return_data['message'] != 'success':
             print("[Alist Failure✕] 重命名路径: {0} -> {1}\n{2}".format(
-                path.split('/')[-1], name, return_data['message']))
+                path, name, return_data['message']))
         else:
-            print("[Alist Success✓] 重命名路径:{0} -> {1}".format(path.split('/')[-1], name))
+            print("[Alist Success✓] 重命名路径:{0} -> {1}".format(path, name))
 
         # 返回请求结果
         return return_data
@@ -413,6 +415,7 @@ class AlistApi:
 class TMDBApi:
     """
     调用TMDB api获取剧集相关信息
+    \nTMDB api官方说明文档(https://developers.themoviedb.org/3)
     """
 
     def __init__(self, key: str):

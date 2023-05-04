@@ -13,16 +13,16 @@ from media_name import AlistMediaRename
 def load_config(config_path):
     # 读取配置文件
     try:
-        config = json.load(open(config_path, "r"))
+        config = json.load(open(config_path, "r", encoding='utf-8'))
     # 若文件不存在则创建文件
     except FileNotFoundError:
-        settings = dict(video_suffix_list=[
-            'mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov'
-        ],
-            subtitle_suffix_list=['srt', 'ass', 'stl'],
-            tmdb_language="zh-CN",
-            tv_folder_rename=False,
-            tv_season_dir=False)
+        settings = dict(tmdb_language="zh-CN",
+                        filename_format="{name}-S{season:0>2}E{episode:0>2}.{title}",
+                        media_folder_rename=False,
+                        media_season_dir=False,
+                        media_season_format="Season {season}",
+                        video_suffix_list=['mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov'],
+                        subtitle_suffix_list=['srt', 'ass', 'stl'])
 
         alist_url = input("请输入Alist地址\n")
         alist_user = input("请输入账号\n")
@@ -35,7 +35,7 @@ def load_config(config_path):
                       alist_totp=alist_totp,
                       tmdb_key=tmdb_key,
                       settings=settings)
-        json.dump(config, open(config_path, "w"))
+        json.dump(config, open(config_path, "w", encoding='utf-8'), indent=4)
         print("\n配置文件保存路径: {}".format(config_path))
         print("其余自定义设置请修改保存后的配置文件")
     return config
@@ -51,8 +51,9 @@ def test():
     for k in config['settings']:
         exec(f"amr.{k} = config['settings']['{k}']")
 
-    # amr.media_rename_id('刀剑神域', '/test/abc/123/4')
-    amr.media_rename_keyword('刀剑神域', '/test/abc/123/4', '123')
+    # amr.media_rename_id('42885', '/test/abc/123/4', '123')
+    # amr.media_rename_keyword('刀剑神域', '/test/abc/123/4', '123')
+    amr.media_rename_keyword('从零开始', '/test/abc/123/4', '123')
 
 
 def main(arg):

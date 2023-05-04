@@ -17,8 +17,6 @@ class AlistMediaRename:
 
     """
 
-    # todo: 自定义重命名文件格式
-    # todo: 文件夹重命名以及季度文件夹重命名
     # todo: 获取TMDB电影信息并重命名
 
     def __init__(self,
@@ -39,15 +37,19 @@ class AlistMediaRename:
         """
 
         # ----Settings Start----
+        # TMDB 搜索语言
+        self.tmdb_language = "zh-CN"
+        # 文件重命名格式
+        self.filename_format = "{name}-S{season:0>2}E{episode:0>2}.{title}"
+        # 是否重命名父文件夹名称
+        self.media_folder_rename = False
+        # 是否创建对应季文件夹，并将剧集文件移动到其中
+        self.media_season_dir = False
+        # 季度文件夹命名格式
+        self.media_season_format = "Season {season}"
         # 需要识别的视频及字幕格式
         self.video_suffix_list = ['mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov']
         self.subtitle_suffix_list = ['srt', 'ass', 'stl']
-        # TMDB 搜索语言
-        self.tmdb_language = "zh-CN"
-        # 是否重命名父文件夹名称
-        self.tv_folder_rename = False
-        # 是否创建对应季文件夹，并将剧集文件移动到其中
-        self.tv_season_dir = False
         # ------Settings End------
 
         # 初始化参数
@@ -103,13 +105,13 @@ class AlistMediaRename:
         # 若查找结果只有一项，则无需选择，直接进行下一步
         if len(tv_info_result['seasons']) == 1:
             # 获取剧集对应季每集标题
+            season_number = tv_info_result['seasons'][0]['season_number']
             tv_season_info = self.tmdb.tv_season_info(
                 tv_id,
                 tv_info_result['seasons'][0]['season_number'],
                 language=self.tmdb_language,
                 silent=self.debug)
             result['result'].append(tv_info_result)
-            season_number = 1
             # 若获取失败则停止， 并返回结果
             if tv_season_info['request_code'] != 200:
                 print("[TMDB Failure✕] 剧集id: {}\t{} 第 {} 季\n{}".format(
@@ -147,9 +149,9 @@ class AlistMediaRename:
         # 保存剧集标题
         episodes = list(
             map(
-                lambda x: "{}-S{:0>2}E{:0>2}.{}".format(
-                    tv_info_result['name'], tv_season_info['season_number'], x[
-                        'episode_number'], x['name']),
+                lambda x: self.filename_format.format(
+                    name=tv_info_result['name'], season=tv_season_info['season_number'], episode=x[
+                        'episode_number'], title=x['name']),
                 tv_season_info['episodes']))
 
         episodes = episodes[first_number - 1:]
@@ -195,6 +197,13 @@ class AlistMediaRename:
             print("{} -> {}".format(subtitle['original_name'],
                                     subtitle['target_name']))
 
+        if self.media_folder_rename:
+            tv_folder_name = f"{tv_info_result['name']} ({tv_info_result['first_air_date'][:4]})"
+            print("\n[Notice!] 文件夹重命名: {} -> {}".format(folder_path.split('/')[-2], tv_folder_name))
+        if self.media_season_dir:
+            season_dir_name = self.media_season_format.format(season=season_number)
+            print("[Notice!] 剧集文件将移动到{}".format(season_dir_name))
+
         # 用户确认
         print("")
         while True:
@@ -218,9 +227,10 @@ class AlistMediaRename:
             if rename_result['message'] != 'success':
                 # 若部分文件命名失败， 则将success参数设为False， 并输出失败原因
                 result['success'] = False
-                # print("[Alist Failure✕] 重命名失败: {0} -> {1}\n{2}".format(
-                #     file['target_name'], file['original_name'],
-                #     rename_result['message']))
+                if self.debug:
+                    print("[Alist Failure✕] 重命名失败: {0} -> {1}\n{2}".format(
+                        file['target_name'], file['original_name'],
+                        rename_result['message']))
 
         print("{:-<30}\n{}".format("", "文件重命名全部完成"))
         # 刷新文件列表
@@ -229,6 +239,21 @@ class AlistMediaRename:
                                               refresh=True,
                                               silent=self.debug)
         result['result'].append(file_list_data)
+
+        # 创建季度文件夹, 并将该季度剧集移动到相应季度中 格式: Season 1
+        if self.media_season_dir:
+            season_path = folder_path + season_dir_name
+            # 获取修改后文件列表
+            move_list = list(map(lambda x: x['target_name'], video_rename_list)) + list(map(lambda x: x['target_name'], subtitle_rename_list))
+            season_mkdir_result = self.alist.mkdir(season_path)
+            result['result'].append(season_mkdir_result)
+            season_dir_remove_result = self.alist.move(move_list, folder_path, season_path, silent=False)
+            result['result'].append(season_dir_remove_result)
+        # 重命名父文件夹 格式: 刀剑神域 (2012)
+        if self.media_folder_rename:
+            tv_folder_rename_result = self.alist.rename(tv_folder_name, folder_path, silent=False)
+            result['result'].append(tv_folder_rename_result)
+
         return result
 
     def media_rename_keyword(self,
