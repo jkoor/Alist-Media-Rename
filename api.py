@@ -3,7 +3,6 @@
 # @Author : JKOR
 # @File : api.py
 # @Software: PyCharm
-from urllib import parse
 
 import pyotp
 import requests
@@ -29,8 +28,7 @@ class AlistApi:
         self.url = url
         self.user = user
         self.password = password
-        self.totp_code = pyotp.TOTP(
-            totp_code)  # 使用self.totp_code.now() 生成实时 TOTP 验证码
+        self.totp_code = pyotp.TOTP(totp_code)  # 使用self.totp_code.now() 生成实时 TOTP 验证码
         self.token = ''
         self.login_status = None
         self.login()
@@ -72,7 +70,7 @@ class AlistApi:
 
     def file_list(self,
                   path: str = '/',
-                  password: str | None = None,
+                  password=None,
                   refresh: bool = True,
                   per_page: int = 0,
                   page: int = 1,
@@ -192,9 +190,9 @@ class AlistApi:
         # 输出重命名结果
         if return_data['message'] != 'success':
             print("[Alist Failure✕] 重命名路径: {0} -> {1}\n{2}".format(
-                path, name, return_data['message']))
+                path.split('/')[-1], name, return_data['message']))
         else:
-            print("[Alist Success✓] 重命名路径:{0} -> {1}".format(path, name))
+            print("[Alist Success✓] 重命名路径:{0} -> {1}".format(path.split('/')[-1], name))
 
         # 返回请求结果
         return return_data
@@ -300,7 +298,7 @@ class AlistApi:
 
     def download_link(self,
                       path: str,
-                      password: str | None = None,
+                      password=None,
                       silent: bool = False) -> dict:
         """
         获取文件下载链接.
@@ -349,9 +347,9 @@ class AlistApi:
     #
     #     # 发送请求
     #     post_url = self.url + '/api/fs/put'
-    #     uploadfile = open(file, "rb")
-    #     # post_data = MultipartEncoder({uploadfile.name: uploadfile})
-    #     post_data = MultipartEncoder({uploadfile.name: uploadfile})
+    #     upload_file = open(file, "rb")
+    #     # post_data = MultipartEncoder({upload_file.name: upload_file})
+    #     post_data = MultipartEncoder({upload_file.name: upload_file})
     #     post_headers = {
     #         'Authorization': self.token,
     #         'File-path': parse.quote(path),
@@ -427,18 +425,19 @@ class TMDBApi:
         self.key = key
         self.api_url = "https://api.themoviedb.org/3"
 
-    def tv_info(self, tv_id: str, silent: bool = False) -> dict:
+    def tv_info(self, tv_id: str, language: str = 'zh-CN', silent: bool = False) -> dict:
         """
         根据提供的id获取剧集信息.
 
         :param tv_id: 剧集id
+        :param language: TMDB搜索语言
         :param silent: 静默返回请求结果, 不输出内容
         :return: 请求状态码与剧集信息请求结果
         """
 
         # 发送请求
         post_url = "{0}/tv/{1}".format(self.api_url, tv_id)
-        post_params = dict(api_key=self.key, language='zh')
+        post_params = dict(api_key=self.key, language=language)
         r = requests.get(post_url, params=post_params)
 
         # 获取请求结果
@@ -474,18 +473,19 @@ class TMDBApi:
         # 返回请求结果
         return return_data
 
-    def search_tv(self, keyword: str, silent: bool = False) -> dict:
+    def search_tv(self, keyword: str, language: str = 'zh-CN', silent: bool = False) -> dict:
         """
         根据关键字匹配剧集, 获取相关信息.
 
         :param keyword: 剧集搜索关键词
+        :param language:
         :param silent: 静默返回请求结果,不输出内容
         :return: 匹配剧集信息请求结果
         """
 
         # 发送请求
         post_url = "{0}/search/tv".format(self.api_url)
-        post_params = dict(api_key=self.key, query=keyword, language='zh-CN')
+        post_params = dict(api_key=self.key, query=keyword, language=language)
         r = requests.get(post_url, params=post_params)
 
         # 获取请求结果
@@ -522,11 +522,13 @@ class TMDBApi:
     def tv_season_info(self,
                        tv_id: str,
                        season_number: int,
+                       language: str = 'zh-CN',
                        silent: bool = False) -> dict:
         """
         获取指定季度剧集信息.
         :param tv_id: 剧集id
         :param season_number: 指定第几季
+        :param language: TMDB搜索语言
         :param silent: 静默返回请求结果,不输出内容
         :return: 返回获取指定季度剧集信息结果
         """
@@ -534,7 +536,7 @@ class TMDBApi:
         # 发送请求
         post_url = "{0}/tv/{1}/season/{2}".format(self.api_url, tv_id,
                                                   season_number)
-        post_params = dict(api_key=self.key, language='zh-CN')
+        post_params = dict(api_key=self.key, language=language)
         r = requests.get(post_url, params=post_params)
 
         # 获取请求结果
