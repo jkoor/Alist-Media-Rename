@@ -1,5 +1,6 @@
 certifi==2022.12.7
 charset-normalizer==3.1.0
+colorama==0.4.6
 idna==3.4
 natsort==8.3.1
 pyotp==2.8.0

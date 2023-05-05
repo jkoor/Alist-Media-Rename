@@ -41,25 +41,6 @@ def load_config(config_path):
     return config
 
 
-def test():
-    # 读取配置文件
-    config = load_config('./local.json')
-    amr = AlistMediaRename(config['alist_url'], config['alist_user'],
-                           config['alist_password'], config['alist_totp'],
-                           config['tmdb_key'], True)
-    # 自定义设置覆盖
-    for k in config['settings']:
-        exec(f"amr.{k} = config['settings']['{k}']")
-
-    # amr.media_rename_id('42885', '/test/abc/123/4', '123')
-    # amr.media_rename_keyword('刀剑神域', '/test/abc/123/4', '123')
-    # amr.media_rename_keyword('从零开始', '/test/abc/123/4', '123')
-    # amr.movie_rename_id('24428', '/test/abc/123/4', '123')
-    amr.movie_rename_keyword('复仇者联盟', '/test/abc/123/4', '123')
-    # amr.tmdb.movie_info('24428')
-    # amr.tmdb.search_movie('复仇者联盟')
-
-
 def main(arg):
     """ 重命名主函数"""
     # 读取配置文件
@@ -90,7 +71,6 @@ def command() -> dict:
     设置命令行参数
     :return: 返回运行参数
     """
-    # todo: 命令行添加操作提醒颜色
 
     parser = argparse.ArgumentParser(
         description="利用TMDB api获取剧集标题, 并对Alist对应剧集文件进行重命名, 便于播放器识别剧集",
@@ -120,6 +100,5 @@ def command() -> dict:
 
 
 if __name__ == '__main__':
-    # test()
     argument = command()
     main(argument)

@@ -5,6 +5,7 @@
 # @Software: PyCharm
 
 from api import AlistApi, TMDBApi
+import colorama
 
 
 class AlistMediaRename:
@@ -16,8 +17,6 @@ class AlistMediaRename:
     文件夹命名举例: 间谍过家家 (2022)
 
     """
-
-    # todo: 获取TMDB电影信息并重命名
 
     def __init__(self,
                  alist_url: str,
@@ -64,7 +63,7 @@ class AlistMediaRename:
         # 初始化AlistApi类, TMDBApi类
         self.alist = AlistApi(self.alist_url, self.alist_user,
                               self.alist_password, self.alist_totp)
-        if not self.alist.login_status:
+        if not self.alist.login_success:
             while True:
                 input()
         self.tmdb = TMDBApi(self.tmdb_key)
@@ -86,6 +85,8 @@ class AlistMediaRename:
 
         if folder_path[-1] != '/':
             folder_path += '/'
+
+        notice_msg = colorama.Fore.YELLOW + '[Notice!]' + colorama.Fore.RESET
 
         # 设置返回数据
         result = dict(success=False,
@@ -115,14 +116,13 @@ class AlistMediaRename:
             result['result'].append(tv_info_result)
             # 若获取失败则停止， 并返回结果
             if tv_season_info['request_code'] != 200:
-                print("[TMDB Failure✕] 剧集id: {}\t{} 第 {} 季\n{}".format(
-                    tv_id, tv_info_result['name'], season_number,
-                    tv_season_info['status_message']))
+                failure_msg = colorama.Fore.RED + '\n[TvInfo●Failure]' + colorama.Fore.RESET
+                print(f"{failure_msg} 剧集id: {tv_id}\t{tv_info_result['name']} 第 {season_number} 季\n{tv_season_info['status_message']}")
                 return result
         else:
             # 获取到多项匹配结果，手动选择
             while True:
-                season_number = input("[Notice!] 该剧集有多季,请输入对应[序号], 输入[n]退出\t")
+                season_number = input(f"{notice_msg} 该剧集有多季,请输入对应[序号], 输入[n]退出\t")
                 active_number = list(range(len(tv_info_result['seasons'])))
                 active_number = list(map(lambda x: str(x), active_number))
                 if season_number == 'n':
@@ -142,9 +142,8 @@ class AlistMediaRename:
             result['result'].append(tv_season_info)
             # 若获取失败则停止， 并返回结果
             if tv_season_info['request_code'] != 200:
-                print("[TMDB Failure✕] 剧集id: {}\t{} 第 {} 季\n{}".format(
-                    tv_id, tv_info_result['name'], season_number,
-                    tv_season_info['status_message']))
+                failure_msg = colorama.Fore.RED + '\n[TvInfo●Failure]' + colorama.Fore.RESET
+                print(f"{failure_msg} 剧集id: {tv_id}\t{tv_info_result['name']} 第 {season_number} 季\n{tv_season_info['status_message']}")
                 return result
 
         # 保存剧集标题
@@ -165,8 +164,9 @@ class AlistMediaRename:
         result['result'].append(file_list_data)
         # 获取失败则停止，返回结果
         if file_list_data['message'] != 'success':
-            print("[Alist Failure✕] 文件列表路径: {0}\n{1}".format(
-                folder_path, file_list_data['message']))
+            # 输出内容提醒颜色
+            failure_msg = colorama.Fore.RED + '\n[List●Failure]' + colorama.Fore.RESET
+            print(f"{failure_msg} 获取文件列表失败: {folder_path}\n{file_list_data['message']}")
             return result
 
         # 创建包含源文件名以及目标文件名列表
@@ -189,26 +189,26 @@ class AlistMediaRename:
                 subtitle_list, episodes))
 
         # 输出提醒消息
-        print("\n[Notice!] 以下视频文件将会重命名: ")
+        print(f"\n{notice_msg} 以下视频文件将会重命名: ")
         for video in video_rename_list:
             print("{} -> {}".format(video['original_name'],
                                     video['target_name']))
-        print("\n[Notice!] 以下字幕文件将会重命名: ")
+        print(f"\n{notice_msg} 以下字幕文件将会重命名: ")
         for subtitle in subtitle_rename_list:
             print("{} -> {}".format(subtitle['original_name'],
                                     subtitle['target_name']))
 
         if self.media_folder_rename:
             tv_folder_name = f"{tv_info_result['name']} ({tv_info_result['first_air_date'][:4]})"
-            print("\n[Notice!] 文件夹重命名: {} -> {}".format(folder_path.split('/')[-2], tv_folder_name))
+            print(f"\n{notice_msg} 文件夹重命名: {folder_path.split('/')[-2]} -> {tv_folder_name}")
         if self.tv_season_dir:
             season_dir_name = self.tv_season_format.format(season=season_number)
-            print("[Notice!] 剧集文件将移动到[{}]".format(season_dir_name))
+            print(f"{notice_msg} 剧集文件将移动到[{season_dir_name}]")
 
         # 用户确认
         print("")
         while True:
-            signal = input("[Notice!] 确定要重命名吗? [回车]确定, [n]取消\t")
+            signal = input(f"{notice_msg} 确定要重命名吗? [回车]确定, [n]取消\t")
             if signal.lower() == '':
                 break
             elif signal.lower() == 'n':
@@ -229,11 +229,10 @@ class AlistMediaRename:
                 # 若部分文件命名失败， 则将success参数设为False， 并输出失败原因
                 result['success'] = False
                 if self.debug:
-                    print("[Alist Failure✕] 重命名失败: {0} -> {1}\n{2}".format(
-                        file['target_name'], file['original_name'],
-                        rename_result['message']))
+                    failure_msg = colorama.Fore.RED + '\n[Rename●Failure]' + colorama.Fore.RESET
+                    print(f"{failure_msg} 重命名失败: {file['original_name']} -> {file['target_name']}\n{rename_result['message']}")
 
-        print("{:-<30}\n{}".format("", "文件重命名全部完成"))
+        print(f"{'':-<30}\n{notice_msg} 文件重命名操作完成")
         # 刷新文件列表
         file_list_data = self.alist.file_list(path=folder_path,
                                               password=folder_password,
@@ -273,6 +272,8 @@ class AlistMediaRename:
         :return: 重命名请求结果
         """
 
+        notice_msg = colorama.Fore.YELLOW + '[Notice!]' + colorama.Fore.RESET
+
         # 创建返回数据
         result = dict(success=False,
                       args=dict(keyword=keyword,
@@ -298,7 +299,7 @@ class AlistMediaRename:
 
         # 若有多项, 则手动选择
         while True:
-            tv_number = input("[Notice!] 查找到多个结果, 请输入对应[序号], 输入[n]退出\t")
+            tv_number = input(f"{notice_msg} 查找到多个结果, 请输入对应[序号], 输入[n]退出\t")
             active_number = list(range(len(search_result['results'])))
             active_number = list(map(lambda x: str(x), active_number))
             if tv_number == 'n':
@@ -329,6 +330,8 @@ class AlistMediaRename:
         :return: 重命名请求结果
         """
 
+        notice_msg = colorama.Fore.YELLOW + '[Notice!]' + colorama.Fore.RESET
+
         if folder_path[-1] != '/':
             folder_path += '/'
 
@@ -353,8 +356,8 @@ class AlistMediaRename:
         result['result'].append(file_list_data)
         # 获取失败则停止，返回结果
         if file_list_data['message'] != 'success':
-            print("\n[Alist Failure✕] 文件列表路径: {0}\n{1}".format(
-                folder_path, file_list_data['message']))
+            failure_msg = colorama.Fore.RED + '\n[List●Failure]' + colorama.Fore.RESET
+            print(f"{failure_msg} 获取文件列表失败: {folder_path}\n{file_list_data['message']}")
             return result
 
         # 创建包含源文件名以及目标文件名列表
@@ -379,7 +382,7 @@ class AlistMediaRename:
                 subtitle_list))
 
         # 输出提醒消息
-        print("\n[Notice!] 仅会将首个视频/字幕文件重命名:")
+        print(f"\n{notice_msg} 仅会将首个视频/字幕文件重命名:")
         for video in video_rename_list:
             print("{} -> {}".format(video['original_name'],
                                     video['target_name']))
@@ -391,12 +394,12 @@ class AlistMediaRename:
 
         if self.media_folder_rename:
             movie_folder_name = f"{movie_info_result['title']} ({movie_info_result['release_date'][:4]})"
-            print("\n[Notice!] 文件夹重命名: {} -> {}".format(folder_path.split('/')[-2], movie_folder_name))
+            print(f"\n{notice_msg} 文件夹重命名: {folder_path.split('/')[-2]} -> {movie_folder_name}")
 
         # 用户确认
         print("")
         while True:
-            signal = input("[Notice!] 确定要重命名吗? [回车]确定, [n]取消\t")
+            signal = input(f"{notice_msg} 确定要重命名吗? [回车]确定, [n]取消\t")
             if signal.lower() == '':
                 break
             elif signal.lower() == 'n':
@@ -417,12 +420,11 @@ class AlistMediaRename:
                     # 若部分文件命名失败， 则将success参数设为False， 并输出失败原因
                     result['success'] = False
                     if self.debug:
-                        print("[Alist Failure✕] 重命名失败: {0} -> {1}\n{2}".format(
-                            file['target_name'], file['original_name'],
-                            rename_result['message']))
+                        failure_msg = colorama.Fore.RED + '\n[Rename●Failure]' + colorama.Fore.RESET
+                        print(f"{failure_msg} 重命名失败: {file['original_name']} -> {file['target_name']}\n{rename_result['message']}")
                 break
 
-        print("{:-<30}\n{}".format("", "文件重命名全部完成"))
+        print(f"{'':-<30}\n{notice_msg} 文件重命名操作完成")
         # 刷新文件列表
         file_list_data = self.alist.file_list(path=folder_path,
                                               password=folder_password,
@@ -450,6 +452,8 @@ class AlistMediaRename:
         :return: 重命名请求结果
         """
 
+        notice_msg = colorama.Fore.YELLOW + '[Notice!]' + colorama.Fore.RESET
+
         # 创建返回数据
         result = dict(success=False,
                       args=dict(keyword=keyword,
@@ -474,7 +478,7 @@ class AlistMediaRename:
 
         # 若有多项, 则手动选择
         while True:
-            movie_number = input("[Notice!] 查找到多个结果, 请输入对应[序号], 输入[n]退出\t")
+            movie_number = input(f"{notice_msg} 查找到多个结果, 请输入对应[序号], 输入[n]退出\t")
             active_number = list(range(len(search_result['results'])))
             active_number = list(map(lambda x: str(x), active_number))
             if movie_number == 'n':

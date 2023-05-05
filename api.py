@@ -7,6 +7,7 @@
 import pyotp
 import requests
 from natsort import natsorted
+import colorama
 
 
 # from requests_toolbelt import MultipartEncoder
@@ -34,7 +35,7 @@ class AlistApi:
         self.password = password
         self.totp_code = pyotp.TOTP(totp_code)  # 使用self.totp_code.now() 生成实时 TOTP 验证码
         self.token = ''
-        self.login_status = None
+        self.login_success = None
         self.login()
 
     def login(self, silent: bool = False) -> dict:
@@ -58,16 +59,19 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[Login●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[Login●Success]' + colorama.Fore.RESET
+
         # 输出获取Token结果
         if return_data['message'] != 'success':
-            self.login_status = False
-            print("\n[Alist Failure✕] Alist登录失败\t2FA验证码: {}\n{}\n".format(
-                post_datas['OtpCode'], return_data['message']))
+            self.login_success = False
+            print(f"{failure_msg} Alist登录失败\t2FA验证码: {post_datas['OtpCode']}\n{return_data['message']}\n")
             return return_data
         else:
             self.token = return_data['data']['token']
-            self.login_status = True
-            print("\n[Alist Success✓] Alist登录成功")
+            self.login_success = True
+            print(f"{success_msg} Alist登录成功\t主页: {self.url}")
 
         # 返回请求结果
         return return_data
@@ -152,14 +156,17 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[List●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[List●Success]' + colorama.Fore.RESET
+
         # 获取失败则输出相关信息
         if return_data['message'] != 'success':
-            print("[Alist Failure✕] 文件列表路径: {0}\n{1}".format(
-                path, return_data['message']))
+            print(f"{failure_msg} 获取文件列表失败: {path}\n{return_data['message']}")
             return return_data
 
         # 输出格式化文件列表信息
-        print("\n[Alist Success✓] 文件列表路径: {0}".format(path))
+        print(f"{success_msg} 文件列表路径: {path}")
         print("{:<21s}{:<10s}{:<26s}".format("修改日期", "文件大小", "名    称"))
         print("{:<25s}{:<14s}{:<30s}".format("--------------------",
                                              "--------",
@@ -167,9 +174,9 @@ class AlistApi:
         for file in (file_list_0 + file_list_1):
             print("{:<25s}{:<14s}{}".format(file['modified'], file['size'],
                                             file['name']))
-        print("\n  文件总数: {0}".format(return_data['data']['total']))
-        print("  写入权限: {0}".format(return_data['data']['write']))
-        print("  存储来源: {0}\n".format(return_data['data']['provider']))
+        print(f"\n  文件总数: {return_data['data']['total']}")
+        print(f"  写入权限: {return_data['data']['write']}")
+        print(f"  存储来源: {return_data['data']['provider']}\n")
 
         # 返回请求结果
         return return_data
@@ -196,12 +203,15 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[Rename●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[Rename●Success]' + colorama.Fore.RESET
+
         # 输出重命名结果
         if return_data['message'] != 'success':
-            print("[Alist Failure✕] 重命名路径: {0} -> {1}\n{2}".format(
-                path, name, return_data['message']))
+            print(f"{failure_msg} 重命名失败: {path} -> {name}\n{return_data['message']}")
         else:
-            print("[Alist Success✓] 重命名路径:{0} -> {1}".format(path, name))
+            print(f"{success_msg} 重命名路径:{path} -> {name}")
 
         # 返回请求结果
         return return_data
@@ -232,12 +242,15 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[Move●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[Move●Success]' + colorama.Fore.RESET
+
         # 输出重命名结果
         if return_data['message'] != 'success':
-            print("[Alist Failure✕] 移动失败: {0} -> {1}\n{2}".format(
-                src_dir, dst_dir, return_data['message']))
+            print(f"{failure_msg} 移动失败: {src_dir} -> {dst_dir}\n{return_data['message']}")
         else:
-            print("[Alist Success✓] 移动路径:{0} -> {1}".format(src_dir, dst_dir))
+            print(f"{success_msg} 移动路径: {src_dir} -> {dst_dir}")
 
         # 返回请求结果
         return return_data
@@ -262,12 +275,15 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[Mkdir●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[Mkdir●Success]' + colorama.Fore.RESET
+
         # 输出新建文件夹请求结果
         if return_data['message'] != 'success':
-            print("[Alist Failure✕] 文件夹创建路径: {0}\n{1}".format(
-                path, return_data['message']))
+            print(f"{failure_msg} 文件夹创建失败: {path}\n{return_data['message']}")
         else:
-            print("[Alist Success✓] 文件夹创建路径: {0}".format(path))
+            print(f"{success_msg} 文件夹创建路径: {path}")
 
         # 返回请求结果
         return return_data
@@ -294,13 +310,16 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[Remove●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[Remove●Success]' + colorama.Fore.RESET
+
         # 输出删除文件/文件夹请求结果
         if return_data['message'] != 'success':
-            print("[Alist Failure✕] 删除路径: {0}\n{1}".format(
-                path, return_data['message']))
+            print(f"{failure_msg} 删除失败: {path}\n{return_data['message']}")
         else:
             for name in names:
-                print("[Alist Success✓] 删除路径: {0}/{1}".format(path, name))
+                print(f"{success_msg} 删除路径: {path}/{name}")
 
         # 返回请求结果
         return return_data
@@ -329,17 +348,17 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[DL_link●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[DL_link●Success]' + colorama.Fore.RESET
+
         # 输出获取下载信息请求结果
         if return_data['message'] == 'success':
             file = return_data['data']
-            print("\n[Alist Success✓] 下载文件所在路径: {0}".format(path))
-            print(
-                "           名称: {0}\n           来源: {1}\n           直链: {2}\n           源链: {3}"
-                .format(file['name'], file['provider'], f"{self.url}/d{path}",
-                        file['raw_url']))
+            print(f"\n{success_msg} 获取文件链接路径: {path}")
+            print(f"名称: {file['name']}\n来源: {file['provider']}\n直链: {self.url}/d{path}\n源链: file['raw_url']")
         else:
-            print("[Alist Failure✕] 文件列表路径: {0}\n{1}".format(
-                path, return_data['message']))
+            print(f"{failure_msg} 获取文件链接失败: {path}\n{return_data['message']}")
 
         # 返回请求结果
         return return_data
@@ -377,13 +396,16 @@ class AlistApi:
     #     # 静默返回请求结果,不输出内容
     #     if silent:
     #         return return_data
-    #
+
+        # 输出内容提醒颜色
+        # failure_msg = colorama.Fore.RED + '\n[Upload●Failure]' + colorama.Fore.RESET
+        # success_msg = colorama.Fore.GREEN + '\n[Upload●Success]' + colorama.Fore.RESET
+
     #     # 输出上传文件请求结果
     #     if return_data['message'] == 'success':
-    #         print("[Alist Success✓] 上传路径: {0}\t本地路径: {1}".format(path, file))
+    #         print(f"{success_msg} 上传路径: {path}\t本地路径: {file}")
     #     else:
-    #         print("[Alist Failure✕] 上传失败路径: {0}\t本地路径: {1}\n{2}".format(
-    #             path, file, return_data['message']))
+    #         print(f"{failure_msg} 上传失败: {path}\t本地路径: {file}\n{return_data['message']}")
     #
     #     # 返回请求结果
     #     return return_data
@@ -407,19 +429,20 @@ class AlistApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[Disk●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[Disk●Success]' + colorama.Fore.RESET
+
         # 输出已添加存储列表请求结果
         if return_data['message'] == 'success':
             disks = return_data['data']['content']
-            print("\n[Alist Success] 存储列表总数: {0}".format(
-                return_data['data']['total']))
+            print(f"{success_msg} 存储列表总数: {return_data['data']['total']}")
             print("{:<14}{:^18}{}".format('驱 动', '状    态', '挂载路径'))
             print("{:<16}{:^20}{}".format("--------", "--------", "--------"))
             for disk in disks:
-                print("{:<16}{:^20}{}".format(disk['driver'], disk['status'],
-                                              disk['mount_path']))
+                print("{:<16}{:^20}{}".format(disk['driver'], disk['status'], disk['mount_path']))
         else:
-            print("[Alist Failure✕] 获取存储驱动失败\n{0}".format(
-                return_data['message']))
+            print(f"{failure_msg} 获取存储驱动失败\n{return_data['message']}")
 
         # 返回请求结果
         return return_data
@@ -464,21 +487,23 @@ class TMDBApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[TvInfo●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[TvInfo●Success]' + colorama.Fore.RESET
+
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print("[TMDB SearchID Failure✕] tv_id: {0}\n{1}".format(
-                tv_id, return_data['status_message']))
+            print(f"{failure_msg} tv_id: {tv_id}\n{return_data['status_message']}")
             return return_data
 
         # 格式化输出请求结果
         first_air_year = return_data['first_air_date'][:4]
         name = return_data['name']
-        dir_name = "{0} ({1})".format(name, first_air_year)
-        print("\n[TMDB Success✓] {}".format(dir_name))
+        dir_name = f"{name} ({first_air_year})"
+        print(f"{success_msg} {dir_name}")
         seasons = return_data['seasons']
         print("{:<10}{:^8}{:^10}{}".format(" 开播时间 ", "集 数", "序 号", "剧 名"))
-        print("{:<12}{:^12}{:^12}{}".format("----------", "----", "-----",
-                                            "----------------"))
+        print("{:<12}{:^12}{:^12}{}".format("----------", "----", "-----", "----------------"))
         for season in seasons:
             print("{:<12}{:^12}{:^12}{}".format(str(season['air_date']),
                                                 season['episode_count'],
@@ -512,26 +537,28 @@ class TMDBApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[TvSearch●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[TvSearch●Success]' + colorama.Fore.RESET
+
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print("[TMDB Failure✕] Keyword: {0}\n{1}".format(
-                keyword, return_data['status_message']))
+            print(f"{failure_msg} Keyword: {keyword}\n{return_data['status_message']}")
             return return_data
 
         if len(return_data['results']) == 0:
-            print('[TMDB Failure✕] 关键词[{0}]查找不到任何相关剧集'.format(keyword))
+            print(f"{failure_msg} 关键词[{keyword}]查找不到任何相关剧集")
             return return_data
 
         # 格式化输出请求结果
-        print('\n[TMDB Success✓] 关键词[{0}]查找结果如下: '.format(keyword))
+        print(f"{success_msg} 关键词[{keyword}]查找结果如下: ")
         print("{:<8}{:^14}{}".format(" 首播时间 ", "序号", "剧 名"))
-        print("{:<12}{:^16}{}".format("----------", "-----",
-                                      "----------------"))
+        print("{:<12}{:^16}{}".format("----------", "-----", "----------------"))
 
         for i, result in enumerate(return_data['results']):
-            print("{:<12}{:^16}{}".format(result['first_air_date'], i,
-                                          result['name']))
+            print("{:<12}{:^16}{}".format(result['first_air_date'], i, result['name']))
 
+        print("")
         # 返回请求结果
         return return_data
 
@@ -563,17 +590,19 @@ class TMDBApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[TvSeason●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[TvSeason●Success]' + colorama.Fore.RESET
+
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print("[TMDB Failure✕] 剧集id: {0}\t第 {1} 季\n{2}".format(
-                tv_id, season_number, return_data['status_message']))
+            print(f"{failure_msg} 剧集id: {tv_id}\t第 {season_number} 季\n{return_data['status_message']}")
             return return_data
 
         # 格式化输出请求结果
-        print("\n[TMDB Success✓] {} 第 {} 季 ".format(return_data['name'], season_number))
+        print(f"{success_msg} {return_data['name']} 第 {season_number} 季 ")
         print("{:6}{:<12}{:<10}{}".format("序 号", "放映日期", "时 长", "标 题"))
-        print("{:8}{:<16}{:<12}{}".format("----", "----------", "-----",
-                                          "----------------"))
+        print("{:8}{:<16}{:<12}{}".format("----", "----------", "-----", "----------------"))
 
         for episode in return_data['episodes']:
             print("{:<8}{:<16}{:<12}{}".format(episode['episode_number'],
@@ -607,16 +636,19 @@ class TMDBApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[MovieInfo●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[MovieInfo●Success]' + colorama.Fore.RESET
+
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print("[TMDB SearchID Failure✕] tv_id: {0}\n{1}".format(
-                movie_id, return_data['status_message']))
+            print(F"{failure_msg} tv_id: {movie_id}\n{return_data['status_message']}")
             return return_data
 
         # 格式化输出请求结果
-        print("\n[TMDB Success✓] {} {}".format(return_data['title'], return_data['release_date']))
-        print("[标语] {}".format(return_data['tagline']))
-        print("[剧集简介] {}".format(return_data['overview']))
+        print(f"{success_msg} {return_data['title']} {return_data['release_date']}")
+        print(f"[标语] {return_data['tagline']}")
+        print(f"[剧集简介] {return_data['overview']}")
 
         # 返回请求结果
         return return_data
@@ -644,25 +676,26 @@ class TMDBApi:
         if silent:
             return return_data
 
+        # 输出内容提醒颜色
+        failure_msg = colorama.Fore.RED + '\n[MovieSearch●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '\n[MovieSearch●Success]' + colorama.Fore.RESET
+
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print("[TMDB Failure✕] Keyword: {0}\n{1}".format(
-                keyword, return_data['status_message']))
+            print(f"{failure_msg} Keyword: {keyword}\n{return_data['status_message']}")
             return return_data
 
         if len(return_data['results']) == 0:
-            print('[TMDB Failure✕] 关键词[{0}]查找不到任何相关剧集'.format(keyword))
+            print(f"{failure_msg} 关键词[{keyword}]查找不到任何相关剧集")
             return return_data
 
         # 格式化输出请求结果
-        print('\n[TMDB Success✓] 关键词[{0}]查找结果如下: '.format(keyword))
+        print(f"{success_msg} 关键词[{keyword}]查找结果如下: ")
         print("{:<8}{:^14}{}".format(" 首播时间 ", "序号", "电影标题"))
-        print("{:<12}{:^16}{}".format("----------", "-----",
-                                      "----------------"))
+        print("{:<12}{:^16}{}".format("----------", "-----", "----------------"))
 
         for i, result in enumerate(return_data['results']):
-            print("{:<12}{:^16}{}".format(result['release_date'], i,
-                                          result['title']))
+            print("{:<12}{:^16}{}".format(result['release_date'], i, result['title']))
 
         # 返回请求结果
         return return_data
