@@ -1,16 +1,12 @@
 # Alist Media Rename
 
----
-
 从 The Movie Database(TMDb) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。
 
-![](https://raw.githubusercontent.com/jkoor/AlistMediaRename/main/tutorial.gif)
+![](./tutorial.gif)
 
 
 
 ## ToDo
-
----
 
 - [x] 自动通过 Alist 2FA 验证
 - [x] 支持电影/剧集文件重命名
@@ -25,11 +21,13 @@
 
 ## 安装依赖&注意事项
 
----
+>Windows 系统可直接下载 Release 中打包后的 main.exe 运行，不需要安装 Python 环境。
+>
+>使用方法：进入 main.exe 目录，使用命令`./main.exe` 代替`python main.py`命令
 
 1. 环境配置
 
-​	Python(>=3.6)，建议使用 3.10 版本，已在 Windwos 11/Linux 测试通过。
+   Python(>=3.6)，建议使用 3.10 版本，已在 Windwos 11/Linux 测试通过。
 
 2. 下载项目中的文件到本地，建议使用 git 命令`git clone `
 
@@ -56,8 +54,6 @@
 
 ## 快速开始
 
----
-
 初始使用请按提示输入 Alist 网址、账号、密码、2FA 密钥以及 TMDb API 密钥，配置信息会保存在同目录下`config.json`文件中。
 
 **使用方法**
@@ -82,6 +78,8 @@ python main.py [剧集关键字] -d [Alist 文件夹路径] -p [路径访问密�
 # 获取完整使用帮助信息
 python main.py -h
 ```
+
+
 
 **举个例子**
 
@@ -123,63 +121,60 @@ python main.py -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 | --debug        | 可选 |               | debug 模式，输出更加详细的信息 |
 | -h, --help     |  /   |               | 显示使用帮助信息               |
 
+
+
 **配置文件**
 
 在本地保存的配置文件中，除基本的登录参数外，在`settings`字段中包含以下几个可配置项
 
-1. tmdb_language: zh-CN
 
-指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准，默认为`zh-CN`
 
-2. media_folder_rename: true/false
+| 参数                 | 类型   | 默认值                                             |
+| -------------------- | ------ | -------------------------------------------------- |
+| tmdb_language        | 字符串 | zh-CN                                              |
+| media_folder_rename  | 布尔值 | true/**false**                                     |
+| tv_name_format       | 字符串 | {name}-S{season:0>2}E{episode:0>2}.{title}         |
+| tv_season_dir        | 布尔值 | true/**false**                                     |
+| tv_season_format     | 字符串 | Season {season}                                    |
+| video_suffix_list    | 数组   | ['mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov'] |
+| subtitle_suffix_list | 数组   | ['srt', 'ass', 'stl']                              |
 
-指定是否对父文件夹重命名，命名格式为【剧名 (首播年份)】，如：刀剑神域 (2012)，默认为`false`
 
-3. tv_name_format： {name}-S{season:0>2}E{episode:0>2}.{title}
 
-文件命名格式，使用python的`format()`函数识别，若不了解，请勿随机改动。
+1. `tmdb_language`: 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
 
-默认命名：刀剑神域-S01E01.剑的世界.mp4
+2. `media_folder_rename`: 指定是否对父文件夹重命名，命名格式为【剧名 (首播年份)】，如：刀剑神域 (2012)
 
-更改举例：{name}-第{season:0>1}季-第{episode:0>3}集
+3. `tv_name_format`：文件命名格式，使用python的`format()`函数识别，若不了解，请勿随机改动。
 
-文件命名：刀剑神域-第1季-第001集.mp4
+   默认命名：刀剑神域-S01E01.剑的世界.mp4
 
-4. tv_season_dir: true/false
+   更改举例：{name}-第{season:0>1}季-第{episode:0>3}集
 
-5. tv_season_format: Season {season}
+   文件命名：刀剑神域-第1季-第001集.mp4
 
-是否创建季度文件夹，以及季度文件夹命名格式。设置为`true`则会在 Alist 路径中创建剧集对应季度的文件夹，并将剧集移动到季度文	件夹中，默认命名格式举例：Season 1
+4. `tv_season_dir`: 是否创建季度文件夹
 
->若有较多的剧集/电影文件，为方便播放器搜刮以及后期维护整理，建议创建剧名文件夹与季度文件夹。
->
->开启 media_folder_rename 和 tv_season_dir 功能后，文件树大致为：
->
->
->
->SAO               ------->     刀剑神域 (2012)
->├─ 1.ass                       └─Season 1
->├─ ······                               ├─ 刀剑神域-S01E01.剑的世界.ass
->└─ 12.mp4                        ├─ ······
->                                                └─ 刀剑神域-S01E12.结衣的心.mp4
+5. `tv_season_format`: 季度文件夹命名格式
 
-6. video_suffix_list
-7. subtitle_suffix_list
+   设置为`true`则会在 Alist 路径中创建剧集对应季度的文件夹，并将剧集移动到季度文件夹中，默认命名格式：Season 1
 
-需要识别的视频/字幕文件扩展名
+>若有较多的剧集/电影文件，为方便播放器搜刮以及后期维护整理，建议创建剧名文件夹与季度文件夹
+
+6. `video_suffix_list`: 需要识别的视频文件扩展名
+7. `subtitle_suffix_list`: 需要识别的字幕文件扩展名
 
 
 
 ## 调用函数
 
----
-
 若需要在其他 Python 文件中调用本程序，可参考以下内容：
 
-Alist Media Rename
-├─ api.py  # Alist请求api函数以及TMDb获取信息函数
-├─ meida_rename.py  # 实现获取信息并重命名的主函数
-└─ main.py  # 程序运行主函数
+api.py  # Alist 请求 api 函数以及 TMDb 获取信息函数
+
+meida_rename.py  # 实现获取信息并重命名的主函数
+
+main.py  # 程序运行主函数
 
 在`meida_rename.py`中定义了一个类`AlistMediaRename()`，根据代码注释要求传入相关参数，即可调用本程序的主函数
 
@@ -229,8 +224,6 @@ alist.disk_list()
 
 
 ## 最后
-
----
 
 - 本项目是受到了 GitHub 中一个获取TMDb信息并对本地文件重命名项目的启发：[wklchris/Media-Renamer](https://github.com/wklchris/Media-Renamer)
 
