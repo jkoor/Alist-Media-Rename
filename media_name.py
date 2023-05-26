@@ -223,7 +223,7 @@ class AlistMediaRename:
             rename_result = self.alist.rename(file['target_name'],
                                               folder_path +
                                               file['original_name'],
-                                              silent=self.debug)
+                                              silent=False)
             result['result'].append(rename_result)
             if rename_result['message'] != 'success':
                 # 若部分文件命名失败， 则将success参数设为False， 并输出失败原因

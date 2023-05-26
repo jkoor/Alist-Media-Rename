@@ -109,25 +109,25 @@ python main.py -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 
 完整参数列表：python main.py -[?] [keyword] -d [dir]
 
-| 参数           | 类型 | 默认          | 说明                           |
-| -------------- | :--: | ------------- | ------------------------------ |
-| keyword        | 必须 |               | TMDb 搜索字段                  |
-| -d             | 必须 |               | Alist 文件夹路径               |
-| -i, --id       | 可选 |               | 根据 TMDb id 获取剧集/电影信息 |
-| -m, --movie    | 可选 |               | 查找电影信息，而不是剧集       |
-| -p, --password | 可选 | None          | Alist 文件夹访问密码           |
-| -n, --number   | 可选 | 1             | 指定从第几集开始命名           |
-| -c, --config   | 可选 | ./config.json | 指定配置文件路径               |
-| --debug        | 可选 |               | debug 模式，输出更加详细的信息 |
-| -h, --help     |  /   |               | 显示使用帮助信息               |
+| 参数            | 类型 | 默认          | 说明                                      |
+| --------------- | :--: | ------------- | ----------------------------------------- |
+| keyword         | 必须 |               | TMDb 搜索字段                             |
+| -d              | 必须 |               | Alist 文件夹路径                          |
+| -i, --id        | 可选 |               | 根据 TMDb id 获取剧集/电影信息            |
+| -m, --movie     | 可选 |               | 查找电影信息，而不是剧集                  |
+| -p, --password  | 可选 | None          | Alist 文件夹访问密码                      |
+| -n, --number    | 可选 | 1             | 指定从第几集开始命名                      |
+| -c, --config    | 可选 | ./config.json | 指定配置文件路径                          |
+| --debug         | 可选 |               | debug 模式，输出更加详细的信息            |
+| -f, --folderdir | 可选 | None          | 覆盖配置文件中的`media_folder_rename`参数 |
+| -s, -seasondir  | 可选 | None          | 覆盖配置文件中的`tv_season_dir`参数       |
+| -h, --help      |  /   |               | 显示使用帮助信息                          |
 
 
 
 **配置文件**
 
 在本地保存的配置文件中，除基本的登录参数外，在`settings`字段中包含以下几个可配置项
-
-
 
 | 参数                 | 类型   | 默认值                                             |
 | -------------------- | ------ | -------------------------------------------------- |
@@ -138,8 +138,6 @@ python main.py -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 | tv_season_format     | 字符串 | Season {season}                                    |
 | video_suffix_list    | 数组   | ['mp4', 'mkv', 'flv', 'avi', 'mpg', 'mpeg', 'mov'] |
 | subtitle_suffix_list | 数组   | ['srt', 'ass', 'stl']                              |
-
-
 
 1. `tmdb_language`: 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
 

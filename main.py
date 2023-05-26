@@ -51,6 +51,10 @@ def main(arg):
     # 自定义设置覆盖
     for k in config['settings']:
         exec(f"amr.{k} = config['settings']['{k}']")
+    if arg['media_folder_rename'] is not None:
+        amr.media_folder_rename = True if arg['media_folder_rename'] == 'true' else False
+    if arg['tv_season_dir'] is not None:
+        amr.tv_season_dir = True if arg['tv_season_dir'] == 'true' else False
 
     # TMDB搜索电影
     if arg['movie']:
@@ -76,23 +80,27 @@ def command() -> dict:
         description="利用TMDB api获取剧集标题, 并对Alist对应剧集文件进行重命名, 便于播放器识别剧集",
         usage="python %(prog)s [options] keyword -d path",
         epilog="用例: python main.py 刀剑神域 -d /阿里云盘/刀剑神域/")
-    parser.add_argument('-v', '--version', action='version',
-                        version='AlistMediaRename version : v 1.0', help='显示版本信息')
+
+    # 必选参数
     parser.add_argument("keyword", help="TMDB剧集查找字段")
     parser.add_argument("-d", "--dir", action='store', required=True, help="Alist剧集文件所在文件夹, 结尾需加/")
+    # 可选参数
+    parser.add_argument("-c", "--config", action="store", help="指定配置文件路径, 默认为程序所在路径(可选)", default='./config.json')
+    parser.add_argument("-f", "--folderdir", action="store", choices=['true', 'false'], help="重命名父文件夹为剧集名称(可选)")
     parser.add_argument("-i", "--id", action="store_true", help="通过id搜索TMDB剧集信息(可选)")
     parser.add_argument("-m", "--movie", action="store_true", help="搜索电影而不是剧集")
-    parser.add_argument("-c", "--config", action="store", help="指定配置文件路径, 默认为程序所在路径(可选)",
-                        default='./config.json')
+    parser.add_argument("-n", "--number", action="store", type=int, default=1, help="指定从第几集开始重命名, 默认为1(可选)")
+    parser.add_argument("-s", "--seasondir", action="store", choices=['true', 'false'], help="创建季度文件夹并整理剧集(可选)")
     parser.add_argument("-p", "--password", action="store", help="文件访问密码(可选)")
-    parser.add_argument("-n", "--number", action="store", type=int, default=1,
-                        help="指定从第几集开始重命名, 默认为1(可选)")
+    parser.add_argument('-v', '--version', action='version', version='AlistMediaRename version : v 1.5', help='显示版本信息')
     parser.add_argument("--debug", action="store_false", default=True, help="debug模式, 输出信息更加详细")
     args = parser.parse_args()
     return dict(keyword=args.keyword,
                 dir=args.dir,
                 id=args.id,
                 movie=args.movie,
+                media_folder_rename=args.folderdir,
+                tv_season_dir=args.seasondir,
                 config_path=args.config,
                 password=args.password,
                 number=args.number,

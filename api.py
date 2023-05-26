@@ -204,8 +204,8 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[Rename●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[Rename●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + '[Rename●Failure]' + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + '[Rename●Success]' + colorama.Fore.RESET
 
         # 输出重命名结果
         if return_data['message'] != 'success':
