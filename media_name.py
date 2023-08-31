@@ -4,6 +4,7 @@
 # @File : media_name.py
 # @Software: PyCharm
 
+import time
 from api import AlistApi, TMDBApi
 import colorama
 
@@ -123,16 +124,16 @@ class AlistMediaRename:
             # 获取到多项匹配结果，手动选择
             while True:
                 season_number = input(f"{notice_msg} 该剧集有多季,请输入对应[序号], 输入[n]退出\t")
-                active_number = list(range(len(tv_info_result['seasons'])))
-                active_number = list(map(lambda x: str(x), active_number))
+                # active_number = list(range(len(tv_info_result['seasons'])))
+                # active_number = list(map(lambda x: str(x), active_number))
                 if season_number == 'n':
                     result['result'].append("用户输入[n], 已主动退出选择剧集季数")
                     return result
-                elif season_number in active_number:
+                else:
                     season_number = int(season_number)
                     break
-                else:
-                    continue
+                # else:
+                #     continue
 
             # 获取剧集对应季每集信息
             tv_season_info = self.tmdb.tv_season_info(tv_id,
@@ -231,6 +232,8 @@ class AlistMediaRename:
                 if self.debug:
                     failure_msg = colorama.Fore.RED + '\n[Rename●Failure]' + colorama.Fore.RESET
                     print(f"{failure_msg} 重命名失败: {file['original_name']} -> {file['target_name']}\n{rename_result['message']}")
+            
+            time.sleep(1)
 
         print(f"{'':-<30}\n{notice_msg} 文件重命名操作完成")
         # 刷新文件列表
@@ -263,7 +266,7 @@ class AlistMediaRename:
                           folder_password=None,
                           first_number: int = 1) -> dict:
         """
-        根据TMDB剧集id获取剧集标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为剧集标题.
+        根据TMDB剧集关键词获取剧集标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为剧集标题.
 
         :param keyword: 剧集关键词
         :param folder_path: 文件夹路径, 结尾必须加'/', 如/abc/test/
