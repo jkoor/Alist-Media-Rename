@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "rename"
+version = "0.1.0"
+description = ""
+authors = ["JKOR <hardyli719@outlook.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+colorama = "^0.4.6"
+pyotp = "^2.9.0"
+requests = "^2.31.0"
+natsort = "^8.4.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
