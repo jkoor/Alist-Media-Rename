@@ -1,4 +1,4 @@
-# Alist Media Rename
+# Alist-Media-Rename
 
 从 The Movie Database(TMDb) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。
 
@@ -226,6 +226,8 @@ alist.disk_list()
 - 本项目是受到了 GitHub 中一个获取TMDb信息并对本地文件重命名项目的启发：[wklchris/Media-Renamer](https://github.com/wklchris/Media-Renamer)
 
 - TMDb Api 在短时间内频繁使用会限制使用，如出现此情况请稍后再试
+
+- 欢迎邮件联系，一起交流探讨：hardyleoo@outlook.com
 
 - 本程序使用 TMDB API，但未经 TMDB 认可或认证。
 

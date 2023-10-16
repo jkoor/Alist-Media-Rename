@@ -9,6 +9,13 @@ from api import AlistApi, TMDBApi
 import colorama
 
 
+# TODO: 将重命名操作改为异步操作, 提高效率
+# TODO: 将文件列表获取改为异步操作, 提高效率
+# TODO: 修复获取文件目录时，目录未更新的bug
+# TODO: 将文件名识别改为正则表达式, 提高效率和可操作性
+# TODO: 重写输出信息模块，改为装饰器模式，提高可读性
+
+
 class AlistMediaRename:
     """
     利用TMDB api获取剧集标题, 并对Alist对应剧集文件进行重命名, 便于播放器刮削识别剧集
