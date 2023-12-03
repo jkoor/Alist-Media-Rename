@@ -5,8 +5,10 @@
 # @Software: PyCharm
 
 import time
-from api import AlistApi, TMDBApi
+
 import colorama
+
+from api import AlistApi, TMDBApi
 
 
 # TODO: 将重命名操作改为异步操作, 提高效率
@@ -14,6 +16,7 @@ import colorama
 # TODO: 修复获取文件目录时，目录未更新的bug
 # TODO: 将文件名识别改为正则表达式, 提高效率和可操作性
 # TODO: 重写输出信息模块，改为装饰器模式，提高可读性
+# TODO: 排除已重命名成功文件
 
 
 class AlistMediaRename:

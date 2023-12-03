@@ -28,13 +28,13 @@ class AlistApi:
         :param password: Alist 登录密码
         :param totp_code: Alist 2FA 验证码
         """
-        if url[-1] == '/':
+        if url[-1] == "/":
             url = url[:-1]
         self.url = url
         self.user = user
         self.password = password
         self.totp_code = pyotp.TOTP(totp_code)  # 使用self.totp_code.now() 生成实时 TOTP 验证码
-        self.token = ''
+        self.token = ""
         self.login_success = None
         self.login()
 
@@ -47,10 +47,8 @@ class AlistApi:
         """
 
         # 发送请求
-        post_url = self.url + '/api/auth/login'
-        post_datas = dict(Username=self.user,
-                          Password=self.password,
-                          OtpCode=self.totp_code.now())
+        post_url = self.url + "/api/auth/login"
+        post_datas = dict(Username=self.user, Password=self.password, OtpCode=self.totp_code.now())
         r = requests.post(url=post_url, data=post_datas)
         # 获取请求结果
         return_data = r.json()
@@ -60,29 +58,33 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[Login●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[Login●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[Login●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[Login●Success]" + colorama.Fore.RESET
 
         # 输出获取Token结果
-        if return_data['message'] != 'success':
+        if return_data["message"] != "success":
             self.login_success = False
-            print(f"{failure_msg} Alist登录失败\t2FA验证码: {post_datas['OtpCode']}\n{return_data['message']}\n")
+            print(
+                f"{failure_msg} Alist登录失败\t2FA验证码: {post_datas['OtpCode']}\n{return_data['message']}\n"
+            )
             return return_data
         else:
-            self.token = return_data['data']['token']
+            self.token = return_data["data"]["token"]
             self.login_success = True
             print(f"{success_msg} Alist登录成功\t主页: {self.url}")
 
         # 返回请求结果
         return return_data
 
-    def file_list(self,
-                  path: str = '/',
-                  password=None,
-                  refresh: bool = True,
-                  per_page: int = 0,
-                  page: int = 1,
-                  silent: bool = False) -> dict:
+    def file_list(
+        self,
+        path: str = "/",
+        password=None,
+        refresh: bool = True,
+        per_page: int = 0,
+        page: int = 1,
+        silent: bool = False,
+    ) -> dict:
         """
         获取文件列表,并格式化输出所有文件名称.
 
@@ -96,84 +98,81 @@ class AlistApi:
         """
 
         # 发送请求
-        post_url = self.url + '/api/fs/list'
+        post_url = self.url + "/api/fs/list"
         post_headers = dict(Authorization=self.token)
-        post_params = dict(path=path,
-                           password=password,
-                           refresh=refresh,
-                           per_page=per_page,
-                           page=page)
-        r = requests.post(url=post_url,
-                          headers=post_headers,
-                          params=post_params)
+        post_params = dict(
+            path=path, password=password, refresh=refresh, per_page=per_page, page=page
+        )
+        r = requests.post(url=post_url, headers=post_headers, params=post_params)
         # 获取请求结果
         return_data = r.json()
 
         # 整理排序文件列表
-        if return_data['message'] == 'success':
+        if return_data["message"] == "success":
             # 若文件夹为空, 则停止运行
-            if return_data['data']['content'] is None:
-                return_data['message'] = "文件夹为空"
+            if return_data["data"]["content"] is None:
+                return_data["message"] = "文件夹为空"
                 return return_data
 
-            file_list = return_data['data']['content']
-            file_list_0 = list(filter(lambda f: f['is_dir'] is True,
-                                      file_list))
-            file_list_1 = list(
-                filter(lambda f: f['is_dir'] is False, file_list))
-            file_list_0 = natsorted(file_list_0, key=lambda x: x['name'])
-            file_list_1 = natsorted(file_list_1, key=lambda x: x['name'])
+            file_list = return_data["data"]["content"]
+            file_list_0 = list(filter(lambda f: f["is_dir"] is True, file_list))
+            file_list_1 = list(filter(lambda f: f["is_dir"] is False, file_list))
+            file_list_0 = natsorted(file_list_0, key=lambda x: x["name"])
+            file_list_1 = natsorted(file_list_1, key=lambda x: x["name"])
 
             for i in range(len(file_list_0)):
                 # 文件夹信息格式化
-                file_list_0[i]['modified'] = "{0}  {1}".format(
-                    file_list_0[i]['modified'][:10],
-                    file_list_0[i]['modified'][11:19])
-                file_list_0[i]['size'] = ""
-                file_list_0[i]['name'] = "[{0}]".format(file_list_0[i]['name'])
+                file_list_0[i]["modified"] = "{0}  {1}".format(
+                    file_list_0[i]["modified"][:10], file_list_0[i]["modified"][11:19]
+                )
+                file_list_0[i]["size"] = ""
+                file_list_0[i]["name"] = "[{0}]".format(file_list_0[i]["name"])
 
             for i in range(len(file_list_1)):
-                file_list_1[i]['modified'] = "{0}  {1}".format(
-                    file_list_1[i]['modified'][:10],
-                    file_list_1[i]['modified'][11:19])
-                if file_list_1[i]['size'] >= 1000000000:  # 格式化GB级大小文件显示信息
-                    file_list_1[i]['size'] = '{0}GB'.format(
-                        str(round(file_list_1[i]['size'] / 1073741824, 2)))
-                elif file_list_1[i]['size'] >= 1000000:  # 格式化MB级大小文件显示信息
-                    file_list_1[i]['size'] = '{0}MB'.format(
-                        str(round(file_list_1[i]['size'] / 1048576, 2)))
-                elif file_list_1[i]['size'] >= 1000:  # 格式化KB级大小文件显示信息
-                    file_list_1[i]['size'] = '{0}KB'.format(
-                        str(round(file_list_1[i]['size'] / 1024, 2)))
+                file_list_1[i]["modified"] = "{0}  {1}".format(
+                    file_list_1[i]["modified"][:10], file_list_1[i]["modified"][11:19]
+                )
+                if file_list_1[i]["size"] >= 1000000000:  # 格式化GB级大小文件显示信息
+                    file_list_1[i]["size"] = "{0}GB".format(
+                        str(round(file_list_1[i]["size"] / 1073741824, 2))
+                    )
+                elif file_list_1[i]["size"] >= 1000000:  # 格式化MB级大小文件显示信息
+                    file_list_1[i]["size"] = "{0}MB".format(
+                        str(round(file_list_1[i]["size"] / 1048576, 2))
+                    )
+                elif file_list_1[i]["size"] >= 1000:  # 格式化KB级大小文件显示信息
+                    file_list_1[i]["size"] = "{0}KB".format(
+                        str(round(file_list_1[i]["size"] / 1024, 2))
+                    )
                 else:  # 格式化B级大小文件显示信息
-                    file_list_1[i]['size'] = '{0}B'.format(
-                        str(file_list_1[i]['size']))
+                    file_list_1[i]["size"] = "{0}B".format(str(file_list_1[i]["size"]))
 
-            return_data['folder_list'] = file_list_0
-            return_data['file_list'] = file_list_1
+            return_data["folder_list"] = file_list_0
+            return_data["file_list"] = file_list_1
 
         # 静默返回请求结果,不输出内容
         if silent:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[List●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[List●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[List●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[List●Success]" + colorama.Fore.RESET
 
         # 获取失败则输出相关信息
-        if return_data['message'] != 'success':
+        if return_data["message"] != "success":
             print(f"{failure_msg} 获取文件列表失败: {path}\n{return_data['message']}")
             return return_data
 
         # 输出格式化文件列表信息
         print(f"{success_msg} 文件列表路径: {path}")
         print("{:<21s}{:<10s}{:<26s}".format("修改日期", "文件大小", "名    称"))
-        print("{:<25s}{:<14s}{:<30s}".format("--------------------",
-                                             "--------",
-                                             "--------------------"))
-        for file in (file_list_0 + file_list_1):
-            print("{:<25s}{:<14s}{}".format(file['modified'], file['size'],
-                                            file['name']))
+        print(
+            "{:<25s}{:<14s}{:<30s}".format(
+                "--------------------", "--------", "--------------------"
+            )
+        )
+        for file in file_list_0 + file_list_1:
+            print("{:<25s}{:<14s}{}".format(file["modified"], file["size"], file["name"]))
         print(f"\n  文件总数: {return_data['data']['total']}")
         print(f"  写入权限: {return_data['data']['write']}")
         print(f"  存储来源: {return_data['data']['provider']}\n")
@@ -192,7 +191,7 @@ class AlistApi:
         """
 
         # 发送请求
-        post_url = self.url + '/api/fs/rename'
+        post_url = self.url + "/api/fs/rename"
         post_headers = dict(Authorization=self.token)
         post_json = dict(name=name, path=path)
         r = requests.post(url=post_url, headers=post_headers, json=post_json)
@@ -204,11 +203,11 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '[Rename●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '[Rename●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "[Rename●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "[Rename●Success]" + colorama.Fore.RESET
 
         # 输出重命名结果
-        if return_data['message'] != 'success':
+        if return_data["message"] != "success":
             print(f"{failure_msg} 重命名失败: {path} -> {name}\n{return_data['message']}")
         else:
             print(f"{success_msg} 重命名路径:{path} -> {name}")
@@ -216,11 +215,7 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    def move(self,
-             names: list,
-             src_dir: str,
-             dst_dir: str,
-             silent: bool = False) -> dict:
+    def move(self, names: list, src_dir: str, dst_dir: str, silent: bool = False) -> dict:
         """
         移动文件/文件夹.
         :param names: 需要移动的文件名称列表
@@ -231,7 +226,7 @@ class AlistApi:
         """
 
         # 发送请求
-        post_url = self.url + '/api/fs/move'
+        post_url = self.url + "/api/fs/move"
         post_headers = dict(Authorization=self.token)
         post_json = dict(src_dir=src_dir, dst_dir=dst_dir, names=names)
         r = requests.post(url=post_url, headers=post_headers, json=post_json)
@@ -243,11 +238,11 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[Move●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[Move●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[Move●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[Move●Success]" + colorama.Fore.RESET
 
         # 输出重命名结果
-        if return_data['message'] != 'success':
+        if return_data["message"] != "success":
             print(f"{failure_msg} 移动失败: {src_dir} -> {dst_dir}\n{return_data['message']}")
         else:
             print(f"{success_msg} 移动路径: {src_dir} -> {dst_dir}")
@@ -264,7 +259,7 @@ class AlistApi:
         :return: 新建文件夹请求结果
         """
         # 发送请求
-        post_url = self.url + '/api/fs/mkdir'
+        post_url = self.url + "/api/fs/mkdir"
         post_headers = dict(Authorization=self.token)
         post_json = dict(path=path)
         r = requests.post(url=post_url, headers=post_headers, json=post_json)
@@ -276,11 +271,11 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[Mkdir●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[Mkdir●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[Mkdir●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[Mkdir●Success]" + colorama.Fore.RESET
 
         # 输出新建文件夹请求结果
-        if return_data['message'] != 'success':
+        if return_data["message"] != "success":
             print(f"{failure_msg} 文件夹创建失败: {path}\n{return_data['message']}")
         else:
             print(f"{success_msg} 文件夹创建路径: {path}")
@@ -299,7 +294,7 @@ class AlistApi:
         """
 
         # 发送请求
-        post_url = self.url + '/api/fs/remove'
+        post_url = self.url + "/api/fs/remove"
         post_headers = dict(Authorization=self.token)
         post_json = dict(dir=path, names=names)
         r = requests.post(url=post_url, headers=post_headers, json=post_json)
@@ -311,11 +306,11 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[Remove●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[Remove●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[Remove●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[Remove●Success]" + colorama.Fore.RESET
 
         # 输出删除文件/文件夹请求结果
-        if return_data['message'] != 'success':
+        if return_data["message"] != "success":
             print(f"{failure_msg} 删除失败: {path}\n{return_data['message']}")
         else:
             for name in names:
@@ -324,10 +319,7 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    def download_link(self,
-                      path: str,
-                      password=None,
-                      silent: bool = False) -> dict:
+    def download_link(self, path: str, password=None, silent: bool = False) -> dict:
         """
         获取文件下载链接.
 
@@ -337,7 +329,7 @@ class AlistApi:
         :return: 获取文件下载链接请求结果
         """
         # 发送请求
-        post_url = self.url + '/api/fs/get'
+        post_url = self.url + "/api/fs/get"
         post_headers = dict(Authorization=self.token)
         post_json = dict(path=path, password=password)
         r = requests.post(url=post_url, headers=post_headers, json=post_json)
@@ -349,14 +341,16 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[DL_link●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[DL_link●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[DL_link●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[DL_link●Success]" + colorama.Fore.RESET
 
         # 输出获取下载信息请求结果
-        if return_data['message'] == 'success':
-            file = return_data['data']
+        if return_data["message"] == "success":
+            file = return_data["data"]
             print(f"\n{success_msg} 获取文件链接路径: {path}")
-            print(f"名称: {file['name']}\n来源: {file['provider']}\n直链: {self.url}/d{path}\n源链: file['raw_url']")
+            print(
+                f"名称: {file['name']}\n来源: {file['provider']}\n直链: {self.url}/d{path}\n源链: file['raw_url']"
+            )
         else:
             print(f"{failure_msg} 获取文件链接失败: {path}\n{return_data['message']}")
 
@@ -373,11 +367,13 @@ class AlistApi:
         :return: 返回上传文件请求结果
         """
 
-        print("由于上传文件需要调用第三方库：requests_toolbelt, "
-              "而主程序又用不到上传操作, 所以该函数代码被注释掉了, "
-              "如有需要请取消代码注释, 并把最上方调用代码取消注释!")
+        print(
+            "由于上传文件需要调用第三方库：requests_toolbelt, "
+            "而主程序又用不到上传操作, 所以该函数代码被注释掉了, "
+            "如有需要请取消代码注释, 并把最上方调用代码取消注释!"
+        )
 
-        return {'注意': '查看输出内容'}
+        return {"注意": "查看输出内容"}
 
     #     # 发送请求
     #     post_url = self.url + '/api/fs/put'
@@ -397,9 +393,9 @@ class AlistApi:
     #     if silent:
     #         return return_data
 
-        # 输出内容提醒颜色
-        # failure_msg = colorama.Fore.RED + '\n[Upload●Failure]' + colorama.Fore.RESET
-        # success_msg = colorama.Fore.GREEN + '\n[Upload●Success]' + colorama.Fore.RESET
+    # 输出内容提醒颜色
+    # failure_msg = colorama.Fore.RED + '\n[Upload●Failure]' + colorama.Fore.RESET
+    # success_msg = colorama.Fore.GREEN + '\n[Upload●Success]' + colorama.Fore.RESET
 
     #     # 输出上传文件请求结果
     #     if return_data['message'] == 'success':
@@ -419,7 +415,7 @@ class AlistApi:
         """
 
         # 发送请求
-        post_url = self.url + '/api/admin/storage/list'
+        post_url = self.url + "/api/admin/storage/list"
         post_headers = dict(Authorization=self.token)
         r = requests.get(url=post_url, headers=post_headers)
         # 获取请求结果
@@ -430,17 +426,17 @@ class AlistApi:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[Disk●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[Disk●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[Disk●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[Disk●Success]" + colorama.Fore.RESET
 
         # 输出已添加存储列表请求结果
-        if return_data['message'] == 'success':
-            disks = return_data['data']['content']
+        if return_data["message"] == "success":
+            disks = return_data["data"]["content"]
             print(f"{success_msg} 存储列表总数: {return_data['data']['total']}")
-            print("{:<14}{:^18}{}".format('驱 动', '状    态', '挂载路径'))
+            print("{:<14}{:^18}{}".format("驱 动", "状    态", "挂载路径"))
             print("{:<16}{:^20}{}".format("--------", "--------", "--------"))
             for disk in disks:
-                print("{:<16}{:^20}{}".format(disk['driver'], disk['status'], disk['mount_path']))
+                print("{:<16}{:^20}{}".format(disk["driver"], disk["status"], disk["mount_path"]))
         else:
             print(f"{failure_msg} 获取存储驱动失败\n{return_data['message']}")
 
@@ -464,7 +460,7 @@ class TMDBApi:
         self.key = key
         self.api_url = "https://api.themoviedb.org/3"
 
-    def tv_info(self, tv_id: str, language: str = 'zh-CN', silent: bool = False) -> dict:
+    def tv_info(self, tv_id: str, language: str = "zh-CN", silent: bool = False) -> dict:
         """
         根据提供的id获取剧集信息.
 
@@ -481,15 +477,15 @@ class TMDBApi:
 
         # 获取请求结果
         return_data = r.json()
-        return_data['request_code'] = r.status_code
+        return_data["request_code"] = r.status_code
 
         # 静默返回请求结果,不输出内容
         if silent:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[TvInfo●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[TvInfo●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[TvInfo●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[TvInfo●Success]" + colorama.Fore.RESET
 
         # 请求失败则输出失败信息
         if r.status_code != 200:
@@ -497,24 +493,28 @@ class TMDBApi:
             return return_data
 
         # 格式化输出请求结果
-        first_air_year = return_data['first_air_date'][:4]
-        name = return_data['name']
+        first_air_year = return_data["first_air_date"][:4]
+        name = return_data["name"]
         dir_name = f"{name} ({first_air_year})"
         print(f"{success_msg} {dir_name}")
-        seasons = return_data['seasons']
+        seasons = return_data["seasons"]
         print("{:<10}{:^8}{:^10}{}".format(" 开播时间 ", "集 数", "序 号", "剧 名"))
         print("{:<12}{:^12}{:^12}{}".format("----------", "----", "-----", "----------------"))
         for season in seasons:
-            print("{:<12}{:^12}{:^12}{}".format(str(season['air_date']),
-                                                season['episode_count'],
-                                                season['season_number'],
-                                                season['name']))
+            print(
+                "{:<12}{:^12}{:^12}{}".format(
+                    str(season["air_date"]),
+                    season["episode_count"],
+                    season["season_number"],
+                    season["name"],
+                )
+            )
         print("")
 
         # 返回请求结果
         return return_data
 
-    def search_tv(self, keyword: str, language: str = 'zh-CN', silent: bool = False) -> dict:
+    def search_tv(self, keyword: str, language: str = "zh-CN", silent: bool = False) -> dict:
         """
         根据关键字匹配剧集, 获取相关信息.
 
@@ -531,22 +531,22 @@ class TMDBApi:
 
         # 获取请求结果
         return_data = r.json()
-        return_data['request_code'] = r.status_code
+        return_data["request_code"] = r.status_code
 
         # 静默返回请求结果,不输出内容
         if silent:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[TvSearch●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[TvSearch●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[TvSearch●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[TvSearch●Success]" + colorama.Fore.RESET
 
         # 请求失败则输出失败信息
         if r.status_code != 200:
             print(f"{failure_msg} Keyword: {keyword}\n{return_data['status_message']}")
             return return_data
 
-        if len(return_data['results']) == 0:
+        if len(return_data["results"]) == 0:
             print(f"{failure_msg} 关键词[{keyword}]查找不到任何相关剧集")
             return return_data
 
@@ -555,18 +555,16 @@ class TMDBApi:
         print("{:<8}{:^14}{}".format(" 首播时间 ", "序号", "剧 名"))
         print("{:<12}{:^16}{}".format("----------", "-----", "----------------"))
 
-        for i, result in enumerate(return_data['results']):
-            print("{:<12}{:^16}{}".format(result['first_air_date'], i, result['name']))
+        for i, result in enumerate(return_data["results"]):
+            print("{:<12}{:^16}{}".format(result["first_air_date"], i, result["name"]))
 
         print("")
         # 返回请求结果
         return return_data
 
-    def tv_season_info(self,
-                       tv_id: str,
-                       season_number: int,
-                       language: str = 'zh-CN',
-                       silent: bool = False) -> dict:
+    def tv_season_info(
+        self, tv_id: str, season_number: int, language: str = "zh-CN", silent: bool = False
+    ) -> dict:
         """
         获取指定季度剧集信息.
         :param tv_id: 剧集id
@@ -577,26 +575,27 @@ class TMDBApi:
         """
 
         # 发送请求
-        post_url = "{0}/tv/{1}/season/{2}".format(self.api_url, tv_id,
-                                                  season_number)
+        post_url = "{0}/tv/{1}/season/{2}".format(self.api_url, tv_id, season_number)
         post_params = dict(api_key=self.key, language=language)
         r = requests.get(post_url, params=post_params)
 
         # 获取请求结果
         return_data = r.json()
-        return_data['request_code'] = r.status_code
+        return_data["request_code"] = r.status_code
 
         # 静默返回请求结果,不输出内容
         if silent:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[TvSeason●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[TvSeason●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[TvSeason●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[TvSeason●Success]" + colorama.Fore.RESET
 
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print(f"{failure_msg} 剧集id: {tv_id}\t第 {season_number} 季\n{return_data['status_message']}")
+            print(
+                f"{failure_msg} 剧集id: {tv_id}\t第 {season_number} 季\n{return_data['status_message']}"
+            )
             return return_data
 
         # 格式化输出请求结果
@@ -604,16 +603,20 @@ class TMDBApi:
         print("{:6}{:<12}{:<10}{}".format("序 号", "放映日期", "时 长", "标 题"))
         print("{:8}{:<16}{:<12}{}".format("----", "----------", "-----", "----------------"))
 
-        for episode in return_data['episodes']:
-            print("{:<8}{:<16}{:<12}{}".format(episode['episode_number'],
-                                               episode['air_date'],
-                                               str(episode['runtime']) + 'min',
-                                               episode['name']))
+        for episode in return_data["episodes"]:
+            print(
+                "{:<8}{:<16}{:<12}{}".format(
+                    episode["episode_number"],
+                    episode["air_date"],
+                    str(episode["runtime"]) + "min",
+                    episode["name"],
+                )
+            )
 
         # 返回请求结果
         return return_data
 
-    def movie_info(self, movie_id: str, language: str = 'zh-CN', silent: bool = False) -> dict:
+    def movie_info(self, movie_id: str, language: str = "zh-CN", silent: bool = False) -> dict:
         """
         根据提供的id获取电影信息.
 
@@ -630,19 +633,19 @@ class TMDBApi:
 
         # 获取请求结果
         return_data = r.json()
-        return_data['request_code'] = r.status_code
+        return_data["request_code"] = r.status_code
 
         # 静默返回请求结果,不输出内容
         if silent:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[MovieInfo●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[MovieInfo●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[MovieInfo●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[MovieInfo●Success]" + colorama.Fore.RESET
 
         # 请求失败则输出失败信息
         if r.status_code != 200:
-            print(F"{failure_msg} tv_id: {movie_id}\n{return_data['status_message']}")
+            print(f"{failure_msg} tv_id: {movie_id}\n{return_data['status_message']}")
             return return_data
 
         # 格式化输出请求结果
@@ -653,7 +656,7 @@ class TMDBApi:
         # 返回请求结果
         return return_data
 
-    def search_movie(self, keyword: str, language: str = 'zh-CN', silent: bool = False) -> dict:
+    def search_movie(self, keyword: str, language: str = "zh-CN", silent: bool = False) -> dict:
         """
         根据关键字匹配电影, 获取相关信息.
 
@@ -670,22 +673,22 @@ class TMDBApi:
 
         # 获取请求结果
         return_data = r.json()
-        return_data['request_code'] = r.status_code
+        return_data["request_code"] = r.status_code
 
         # 静默返回请求结果,不输出内容
         if silent:
             return return_data
 
         # 输出内容提醒颜色
-        failure_msg = colorama.Fore.RED + '\n[MovieSearch●Failure]' + colorama.Fore.RESET
-        success_msg = colorama.Fore.GREEN + '\n[MovieSearch●Success]' + colorama.Fore.RESET
+        failure_msg = colorama.Fore.RED + "\n[MovieSearch●Failure]" + colorama.Fore.RESET
+        success_msg = colorama.Fore.GREEN + "\n[MovieSearch●Success]" + colorama.Fore.RESET
 
         # 请求失败则输出失败信息
         if r.status_code != 200:
             print(f"{failure_msg} Keyword: {keyword}\n{return_data['status_message']}")
             return return_data
 
-        if len(return_data['results']) == 0:
+        if len(return_data["results"]) == 0:
             print(f"{failure_msg} 关键词[{keyword}]查找不到任何相关剧集")
             return return_data
 
@@ -694,8 +697,8 @@ class TMDBApi:
         print("{:<8}{:^14}{}".format(" 首播时间 ", "序号", "电影标题"))
         print("{:<12}{:^16}{}".format("----------", "-----", "----------------"))
 
-        for i, result in enumerate(return_data['results']):
-            print("{:<12}{:^16}{}".format(result['release_date'], i, result['title']))
+        for i, result in enumerate(return_data["results"]):
+            print("{:<12}{:^16}{}".format(result["release_date"], i, result["title"]))
 
         # 返回请求结果
         return return_data
