@@ -12,6 +12,7 @@ from media_name import AlistMediaRename
 # TODO: 修改重命名父文件夹逻辑
 # TODO: 增加移动路径参数
 
+
 def load_config(config_path):
     # 读取配置文件
     try:
@@ -61,7 +62,7 @@ def main(arg):
     )
     # 自定义设置覆盖
     for k in config["settings"]:
-        exec(f"amr.{k} = config['settings']['{k}']")
+        setattr(amr, k, config["settings"][k])
     if arg["media_folder_rename"] is not None:
         amr.media_folder_rename = True if arg["media_folder_rename"] == "true" else False
     if arg["tv_season_dir"] is not None:
