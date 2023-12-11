@@ -7,10 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-requests = "^2.31.0"
 colorama = "^0.4.6"
 natsort = "^8.4.0"
 pyotp = "^2.9.0"
+requests = "^2.31.0"
 
 
 [build-system]
