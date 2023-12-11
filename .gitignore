@@ -3,4 +3,4 @@
 venv
 *.json
 test.py
-/test/
+/test
