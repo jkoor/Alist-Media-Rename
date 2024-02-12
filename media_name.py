@@ -37,7 +37,7 @@ class Config:
     # 使用异步方式加快重命名操作
     rename_by_async: bool = True
     # 是否重命名父文件夹
-    media_folder_rename: int = 0
+    media_folder_rename: int = 1
     # 季度文件夹命名格式
     tv_season_format: str = "Season {season}"
     # 视频文件匹配正则表达式
