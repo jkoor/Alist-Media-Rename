@@ -6,7 +6,7 @@ authors = ["Hardy <hardyli719@outlook.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10"
 colorama = "^0.4.6"
 natsort = "^8.4.0"
 pyotp = "^2.9.0"

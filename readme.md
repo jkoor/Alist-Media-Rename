@@ -24,7 +24,7 @@
 
    Python(>=3.6)，建议使用 3.10 版本，已在 Windwos 11/Linux 测试通过。
 
-2. 下载项目中的文件到本地，建议使用 git 命令`git clone git@github.com:jkoor/Alist-Media-Rename.git`
+2. 下载项目中的文件到本地，建议使用 git 命令`git clone https://github.com/jkoor/Alist-Media-Rename.git`
 
 3. 进入项目文件夹使用`pip install -r requirements.txt`安装依赖，或者手动安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`
 
@@ -120,14 +120,14 @@ python main.py -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 | 参数                   | 类型          | 默认值                                         |
 | ---------------------- | ------------- | ---------------------------------------------- |
 | alist_guest            | *bool*        | True / **False**                               |
-| tmdb_language          | *str*         | **zh-CN**                                      |
-| tv_name_format         | *str*         | **{name}-S{season:0>2}E{episode:0>2}.{title}** |
+| tmdb_language          | *str*         | zh-CN                                          |
+| tv_name_format         | *str*         | {name}-S{season:0>2}E{episode:0>2}.{title}     |
 | exclude_renamed        | *bool*        | True / **False**                               |
 | rename_by_async        | *bool*        | **True** / False                               |
 | media_folder_rename    | *int*         |  0 / **1** / 2                                 |
-| tv_season_format       | *str*         | **Season {season}**                            |
-| video_regex_pattern    | *list*        | `(?i).*\\.(flv|mov|mp4|mkv|rmvb)$ `            |
-| subtitle_regex_pattern | *list*        | `(?i).*\\.(ass|srt|ssa|sub)$`                  |
+| tv_season_format       | *str*         | Season {season}                                |
+| video_regex_pattern    | *list*        | \(\?i\)\.\*\\\.\(flv\|mov\|mp4\|mkv\|rmvb\)\$  |
+| subtitle_regex_pattern | *list*        | \(\?i\)\.\*\\\.\(ass\|srt\|ssa\|sub\)\$        |
 
 1. `alist_guest`: 使用访客身份权限，不登陆
 

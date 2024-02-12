@@ -61,7 +61,7 @@ def command() -> dict:
         "-c", "--config", action="store", help="指定配置文件路径, 默认为程序所在路径(可选)", default="./config.json"
     )
     parser.add_argument(
-        "-f", "--folderdir", action="store", default= 1, help="重命名父文件夹(可选)"
+        "-f", "--folderdir", action="store", help="重命名父文件夹(可选)"
     )
     parser.add_argument("-i", "--id", action="store_true", help="通过id搜索TMDB剧集信息(可选)")
     parser.add_argument("-m", "--movie", action="store_true", help="搜索电影而不是剧集")
@@ -84,7 +84,7 @@ def command() -> dict:
         "dir": args.dir,
         "id": args.id,
         "movie": args.movie,
-        "media_folder_rename": int(args.folderdir),
+        "media_folder_rename": int(args.folderdir) if args.folderdir else None,
         "config_path": args.config,
         "password": args.password,
         "number": args.number,
