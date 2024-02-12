@@ -31,7 +31,7 @@ class DebugDecorators:
                 return func(*args, **kwargs)
             except Exception as e:
                 print(
-                    f"{Tools.ColorStr.red("[ERROR]")}\nFunction: {func.__qualname__}\nArgs: {args}\nKwargs: {kwargs}\nMessage: {e}"
+                    f"{Tools.ColorStr.red('[ERROR]')}\nFunction: {func.__qualname__}\nArgs: {args}\nKwargs: {kwargs}\nMessage: {e}"
                 )
 
                 sys.exit(0)

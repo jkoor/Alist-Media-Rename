@@ -243,10 +243,10 @@ class AlistMediaRename:
         # 输出提醒消息
         print(f"\n{notice_msg} 以下视频文件将会重命名: ")
         for video in video_rename_list:
-            print(f"{video["original_name"]} -> {video["target_name"]}")
+            print(f"{video['original_name']} -> {video['target_name']}")
         print(f"\n{notice_msg} 以下字幕文件将会重命名: ")
         for subtitle in subtitle_rename_list:
-            print(f"{subtitle["original_name"]} -> {subtitle["target_name"]}")
+            print(f"{subtitle['original_name']} -> {subtitle['target_name']}")
 
         # 父文件夹重命名逻辑
         if self.config.media_folder_rename == 1:
@@ -383,7 +383,7 @@ class AlistMediaRename:
         file_list_data = self.alist.file_list(path=folder_path, password=folder_password, refresh=True)
 
         # 创建包含源文件名以及目标文件名列表
-        target_name = f"{movie_info_result["title"]} ({movie_info_result["release_date"][:4]})"
+        target_name = f"{movie_info_result['title']} ({movie_info_result['release_date'][:4]})"
 
         file_list = list(map(lambda x: x["name"], file_list_data["data"]['content']))
         video_list = natsorted(Tools.filter_file(file_list, self.config.video_regex_pattern))
@@ -400,10 +400,10 @@ class AlistMediaRename:
         # 输出提醒消息
         print(f"\n{notice_msg} 仅会将首个视频/字幕文件重命名:")
         for video in video_rename_list:
-            print(f"{video["original_name"]} -> {video["target_name"]}")
+            print(f"{video['original_name']} -> {video['target_name']}")
             break
         for subtitle in subtitle_rename_list:
-            print(f"{subtitle["original_name"]} -> {subtitle["target_name"]}")
+            print(f"{subtitle['original_name']} -> {subtitle['target_name']}")
             break
 
         if self.config.media_folder_rename == 1:
