@@ -4,3 +4,4 @@ venv
 *.json
 test.py
 /test
+poetry.lock

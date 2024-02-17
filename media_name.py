@@ -253,7 +253,7 @@ class AlistMediaRename:
             tv_folder_name = f"{tv_info_result['name']} ({tv_info_result['first_air_date'][:4]})"
             print(f"\n{notice_msg} 文件夹重命名: {folder_path.split('/')[-2]} -> {tv_folder_name}")
         if self.config.media_folder_rename == 2:
-            tv_folder_name = self.config.tv_season_format
+            tv_folder_name = self.config.tv_season_format.format(season=tv_season_info["season_number"], name=tv_info_result["name"], year=tv_info_result["first_air_date"][:4])
             print(f"\n{notice_msg} 文件夹重命名: {folder_path.split('/')[-2]} -> {tv_folder_name}")
 
 
@@ -278,10 +278,8 @@ class AlistMediaRename:
         self.alist.file_list(path=folder_path, password=folder_password, refresh=True)
 
         # 重命名父文件夹 格式: 复仇者联盟 (2012)
-        if self.config.media_folder_rename == 1:
+        if self.config.media_folder_rename == 1 or self.config.media_folder_rename == 2:
             self.alist.rename(tv_folder_name, folder_path[:-1])
-        if self.config.media_folder_rename == 2:
-            self.alist.rename(self.config.tv_season_format, folder_path[:-1])
 
         result["success"] = True
         return result
