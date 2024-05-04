@@ -1,18 +1,29 @@
-[tool.poetry]
+[project]
 name = "rename"
 version = "0.1.0"
-description = ""
-authors = ["Hardy <hardyli719@outlook.com>"]
+description = "Add your description here"
+authors = [
+    { name = "Hardy", email = "hardyli719@outlook.com" }
+]
+dependencies = [
+    "colorama>=0.4.6",
+    "natsort>=8.4.0",
+    "pyotp>=2.9.0",
+    "requests>=2.31.0",
+]
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-colorama = "^0.4.6"
-natsort = "^8.4.0"
-pyotp = "^2.9.0"
-requests = "^2.31.0"
-
+requires-python = ">= 3.8"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rename"]

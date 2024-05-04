@@ -448,7 +448,10 @@ class DebugDecorators:
             print(f"{'----------':<12}{'-----':^16}{'----------------'}")
 
             for i, result in enumerate(return_data["results"]):
-                print(f"{result['release_date']:<12}{i:^16}{result['title']}")
+                if 'release_date' in result:
+                    print(f"{result['release_date']:<12}{i:^16}{result['title']}")
+                else:
+                    print(f"{'xxxx-xx-xx':<12}{i:^16}{result['title']}")
 
             # 返回请求结果
             return return_data
