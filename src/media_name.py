@@ -9,7 +9,7 @@ import json
 import colorama
 from natsort import natsorted
 from api import AlistApi, TMDBApi
-from utils import DebugDecorators, Tools
+from utils import Debug, Tools
 
 
 @dataclass
@@ -45,7 +45,7 @@ class Config:
     # 字幕文件匹配正则表达式
     subtitle_regex_pattern: str = r'(?i).*\.(ass|srt|ssa|sub)$'
 
-    @DebugDecorators.catch_exceptions
+    @Debug.catch_exceptions
     def load(self, filepath: str):
         """读取配置"""
         # 读取配置文件
@@ -66,7 +66,7 @@ class Config:
             self.tmdb_key = input("请输入TMDB api密钥(V3)\n")
             return self.save(filepath)
 
-    @DebugDecorators.catch_exceptions
+    @Debug.catch_exceptions
     def save(self, filepath: str, output: bool = True):
         """保存配置"""
         dict_config = vars(self)
@@ -97,14 +97,14 @@ class AlistMediaRename:
         """
 
         self.config = config
-        self.debug = DebugDecorators.debug_enabled
+        self.debug = Debug.debug_enabled
         # 初始化 AlistApi 和 TMDBApi
         self.alist = AlistApi(self.config.alist_url, self.config.alist_user, self.config.alist_password, self.config.alist_totp)
         if self.config.alist_guest is False:
             self.alist.login()
         self.tmdb = TMDBApi(self.config.tmdb_key)
 
-    @DebugDecorators.catch_exceptions
+    @Debug.catch_exceptions
     def tv_rename_id(
         self,
         tv_id: str,
@@ -284,7 +284,7 @@ class AlistMediaRename:
         result["success"] = True
         return result
 
-    @DebugDecorators.catch_exceptions
+    @Debug.catch_exceptions
     def tv_rename_keyword(
         self, keyword: str, folder_path: str, folder_password=None, first_number: int = 1
     ) -> dict:
@@ -342,7 +342,7 @@ class AlistMediaRename:
         rename_result = self.tv_rename_id(tv_id, folder_path, folder_password, first_number)
         return rename_result
 
-    @DebugDecorators.catch_exceptions
+    @Debug.catch_exceptions
     def movie_rename_id(self, movie_id: str, folder_path: str, folder_password=None) -> dict:
         """
         根据TMDB电影id获取电影标题,并将Alist指定文件夹中的视频文件及字幕文件重命名为电影标题.
@@ -434,7 +434,7 @@ class AlistMediaRename:
         result["success"] = True
         return result
 
-    @DebugDecorators.catch_exceptions
+    @Debug.catch_exceptions
     def movie_rename_keyword(self, keyword: str, folder_path: str, folder_password=None) -> dict:
         """
         根据TMDB电影关键字获取电影标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为电影标题.

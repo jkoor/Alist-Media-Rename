@@ -10,6 +10,7 @@ dependencies = [
     "natsort>=8.4.0",
     "pyotp>=2.9.0",
     "requests>=2.31.0",
+    "pydantic>=2.8.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
