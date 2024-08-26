@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Time : 2023/4/28/0028 18:10
-# @Author : JKOR
-# @File : api.py
-# @Software: PyCharm
-
 import pyotp
 import requests
 from utils import Debug
@@ -18,7 +12,7 @@ class AlistApi:
     """
 
     def __init__(
-        self, url: str, user: str = None, password: str = None, totp_code: str = None
+        self, url: str, user: str = "", password: str = "", totp_code: str = ""
     ):
         """
         初始化参数.
@@ -32,15 +26,12 @@ class AlistApi:
         self.url = url.rstrip("/")
         self.user = user
         self.password = password
-        self.totp_code = pyotp.TOTP(
-            totp_code
-        )  # 使用self.totp_code.now() 生成实时 TOTP 验证码
+        # 使用self.totp_code.now() 生成实时 TOTP 验证码
+        self.totp_code = pyotp.TOTP(totp_code)
         self.login_success = False
         self.token = ""
         self.timeout = 10
         self.silence = False
-        # self.login()
-
 
     @Debug.output_alist_login
     def login(self) -> dict:
@@ -68,7 +59,6 @@ class AlistApi:
 
         # 返回请求结果
         return return_data
-
 
     @Debug.output_alist_file_list
     def file_list(
@@ -275,16 +265,16 @@ class TMDBApi:
     TMDB api官方说明文档(https://developers.themoviedb.org/3)
     """
 
-    def __init__(self, key: str):
+    def __init__(self, api_url: str, api_key: str):
         """
         初始化参数
 
         :param key: TMDB Api Key(V3)
         """
 
-        self.key = key
         self.api_url = "https://api.themoviedb.org/3"
-        self.timeout = 5
+        self.api_key = api_key
+        self.timeout = 10
 
     @Debug.output_tmdb_tv_info
     def tv_info(self, tv_id: str, language: str = "zh-CN") -> dict:
@@ -298,7 +288,7 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}"
-        post_params = {"api_key": self.key, "language": language}
+        post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
         # 获取请求结果
         return r.json()
@@ -315,7 +305,7 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/search/tv"
-        post_params = {"api_key": self.key, "query": keyword, "language": language}
+        post_params = {"api_key": self.api_key, "query": keyword, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
@@ -335,7 +325,7 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}/season/{season_number}"
-        post_params = {"api_key": self.key, "language": language}
+        post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
@@ -354,7 +344,7 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/movie/{movie_id}"
-        post_params = {"api_key": self.key, "language": language}
+        post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
@@ -372,7 +362,7 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/search/movie"
-        post_params = {"api_key": self.key, "query": keyword, "language": language}
+        post_params = {"api_key": self.api_key, "query": keyword, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果

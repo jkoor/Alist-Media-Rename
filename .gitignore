@@ -5,3 +5,4 @@ venv
 test.py
 /test
 poetry.lock
+/src/__pycache__

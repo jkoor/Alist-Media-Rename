@@ -58,7 +58,7 @@ class Debug:
             try:
                 return TaskResult(
                     func_name=func.__qualname__,
-                    args=list(args),
+                    args=list(args, **kwargs),
                     success=True,
                     data=func(*args, **kwargs),
                     error="",
@@ -67,7 +67,7 @@ class Debug:
             except Exception as e:
                 return TaskResult(
                     func_name=func.__qualname__,
-                    args=list(args),
+                    args=list(args, **kwargs),
                     success=False,
                     data="",
                     error=str(e),
@@ -573,6 +573,7 @@ class PrintMessage:
     def print_rename_info(
         video_rename_list: list[dict[str, str]],
         subtitle_rename_list: list[dict[str, str]],
+        folder_rename: bool,
         renamed_folder_title: str | None,
         folder_path: str,
     ):
@@ -669,10 +670,10 @@ class Tools:
             continue
 
     @staticmethod
-    @Debug.catch_exceptions_not_stop
     def exec_function(func, args):
         """执行函数"""
-        return func(*args)
+        decorated_func = Debug.catch_exceptions_not_stop(func)
+        return decorated_func(*args)
 
     @staticmethod
     def select_number(result_list: list[Any]) -> int:
@@ -683,8 +684,9 @@ class Tools:
         else:
             # 获取到多项匹配结果，手动选择
             number = input("查询到以上结果，请输入对应[序号], 输入[n]退出\t")
-            number = -1 if number == "n" else int(number)
-            return number
+            if number.lower() == "n":
+                sys.exit(0)
+            return int(number)
 
     @staticmethod
     def match_episode_files(
