@@ -503,7 +503,7 @@ class PrintMessage:
         for video in video_rename_list:
             print(f"{video['original_name']} -> {video['target_name']}")
         # print("以下字幕文件将会重命名: ")
-        print(PrintMessage.ColorStr.yellow("以下视频文件将会重命名: "))
+        print(PrintMessage.ColorStr.yellow("以下字幕文件将会重命名: "))
         for subtitle in subtitle_rename_list:
             print(f"{subtitle['original_name']} -> {subtitle['target_name']}")
         if renamed_folder_title:
@@ -524,6 +524,21 @@ class PrintMessage:
             if signal.lower() == "n":
                 sys.exit(0)
             continue
+
+    @staticmethod
+    def select_number(result_list: list[Any]) -> int:
+        """根据查询结果选择序号"""
+        # 若查找结果只有一项，则无需选择，直接进行下一步
+        if len(result_list) == 1:
+            return 0
+        else:
+            while True:
+                # 获取到多项匹配结果，手动选择
+                number = input(f"查询到以上结果，请输入对应{PrintMessage.ColorStr.green("[序号]")}, 输入{PrintMessage.ColorStr.red("[n]")}退出\t")
+                if number.lower() == "n":
+                    sys.exit(0)
+                if number.isdigit() and 0 <= int(number) < len(result_list):
+                    return int(number)
 
 
 class Tools:
@@ -572,19 +587,6 @@ class Tools:
         if len(args) > arg_index:
             return args[arg_index]
         return kwargs[kwarg_name]
-
-    @staticmethod
-    def select_number(result_list: list[Any]) -> int:
-        """根据查询结果选择序号"""
-        # 若查找结果只有一项，则无需选择，直接进行下一步
-        if len(result_list) == 1:
-            return 0
-        else:
-            # 获取到多项匹配结果，手动选择
-            number = input("查询到以上结果，请输入对应[序号], 输入[n]退出\t")
-            if number.lower() == "n":
-                sys.exit(0)
-            return int(number)
 
     @staticmethod
     def match_episode_files(

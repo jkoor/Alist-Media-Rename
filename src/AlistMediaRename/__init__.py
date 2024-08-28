@@ -100,7 +100,12 @@ class Amr:
 
         ### ------------------------ 2. 获取剧集对应季度每集信息/文件列表 -------------------- ###
         # 选择季度
-        season_number = Tools.select_number(result_0_tmdb_tv_info.data["seasons"])
+        season_number = PrintMessage.select_number(
+            result_0_tmdb_tv_info.data["seasons"]
+        )
+        season_number = result_0_tmdb_tv_info.data["seasons"][season_number][
+            "season_number"
+        ]
         # 任务列表
         # task_2: 获取剧集对应季每集信息
         task_2_tmdb_tv_season_info = Task(
@@ -207,9 +212,6 @@ class Amr:
             tasks_4_alist_rename, self.config.amr.rename_by_async
         )
 
-        # 刷新文件列表
-        # self.alist.file_list(path=folder_path, password=folder_password, refresh=True)
-
         # 重命名父文件夹 格式: 复仇者联盟 (2012)
         # 任务列表
         # task_5: 重命名父文件夹
@@ -220,11 +222,11 @@ class Amr:
         )
         # 运行任务
         if self.config.amr.media_folder_rename:
-            result_5_alist_rename = Tasks.run(
+            [result_5_alist_rename] = Tasks.run(
                 [task_5_alist_rename], self.config.amr.rename_by_async
             )
         else:
-            result_5_alist_rename = TaskResult(
+            [result_5_alist_rename] = TaskResult(
                 func_name="重命名父文件夹",
                 args=[],
                 success=True,
@@ -232,7 +234,38 @@ class Amr:
                 error="",
             )
 
-        ### ------------------------ 5. 返回结果 -------------------- ###
+        ### ------------------------ 5. 刷新文件夹 -------------------- ###
+        # 任务列表
+        # task_6: 刷新父文件夹
+        task_6_alist_file_list = Task(
+            name="刷新父文件夹",
+            func=self.alist.file_list,
+            args=[Tools.get_parent_path(folder_path), folder_password, True],
+        )
+        # task_7: 刷新文件夹
+        if self.config.amr.media_folder_rename:
+            task_7_alist_file_list = Task(
+                name="刷新文件夹",
+                func=self.alist.file_list,
+                args=[
+                    f"{Tools.get_parent_path(folder_path)}{folder_rename_title}/",
+                    folder_password,
+                    True,
+                ],
+            )
+        else:
+            task_7_alist_file_list = Task(
+                name="刷新文件夹",
+                func=self.alist.file_list,
+                args=[folder_path, folder_password, True],
+            )
+
+        # 运行任务
+        [result_6_alist_file_list, result_7_alist_file_list] = Tasks.run(
+            [task_6_alist_file_list, task_7_alist_file_list], False
+        )
+
+        ### ------------------------ 6. 返回结果 -------------------- ###
         result = [
             result_0_tmdb_tv_info,
             result_1_alist_file_list,
@@ -240,6 +273,8 @@ class Amr:
             result_3_alist_file_list,
             *results_4_alist_rename,
             result_5_alist_rename,
+            result_6_alist_file_list,
+            result_7_alist_file_list,
         ]
 
         return result
@@ -277,7 +312,9 @@ class Amr:
 
         ### ------------------------ 2. 获取剧集 TMDB ID ------------------------------ ###
         # 选择剧集
-        selected_number = Tools.select_number(result_0_tmdb_search_tv.data["results"])
+        selected_number = PrintMessage.select_number(
+            result_0_tmdb_search_tv.data["results"]
+        )
         tv_id = result_0_tmdb_search_tv.data["results"][selected_number]["id"]
 
         # 根据获取到的id进行重命名
@@ -411,17 +448,48 @@ class Amr:
         )
         # 运行任务
         if self.config.amr.media_folder_rename:
-            result_4_alist_rename = Tasks.run(
+            [result_4_alist_rename] = Tasks.run(
                 [task_4_alist_rename], self.config.amr.rename_by_async
             )
         else:
-            result_4_alist_rename = TaskResult(
+            [result_4_alist_rename] = TaskResult(
                 func_name="重命名父文件夹",
                 args=[],
                 success=True,
                 data={"result": "未重命名父文件夹"},
                 error="",
             )
+
+        ### ------------------------ 5. 刷新文件夹 -------------------- ###
+        # 任务列表
+        # task_5: 刷新父文件夹
+        task_5_alist_file_list = Task(
+            name="刷新父文件夹",
+            func=self.alist.file_list,
+            args=[Tools.get_parent_path(folder_path), folder_password, True],
+        )
+        # task_6: 刷新文件夹
+        if self.config.amr.media_folder_rename:
+            task_6_alist_file_list = Task(
+                name="刷新文件夹",
+                func=self.alist.file_list,
+                args=[
+                    f"{Tools.get_parent_path(folder_path)}{folder_rename_title}/",
+                    folder_password,
+                    True,
+                ],
+            )
+        else:
+            task_6_alist_file_list = Task(
+                name="刷新文件夹",
+                func=self.alist.file_list,
+                args=[folder_path, folder_password, True],
+            )
+
+        # 运行任务
+        [result_5_alist_file_list, result_6_alist_file_list] = Tasks.run(
+            [task_5_alist_file_list, task_6_alist_file_list], False
+        )
 
         ### ------------------------ 5. 返回结果 -------------------- ###
         result = [
@@ -430,6 +498,8 @@ class Amr:
             result_2_alist_file_list,
             *results_3_alist_rename,
             result_4_alist_rename,
+            result_5_alist_file_list,
+            result_6_alist_file_list,
         ]
 
         return result
@@ -462,7 +532,7 @@ class Amr:
 
         ### ------------------------ 2. 获取剧集 TMDB ID ------------------------------ ###
         # 选择剧集
-        selected_number = Tools.select_number(
+        selected_number = PrintMessage.select_number(
             result_0_tmdb_search_movie.data["results"]
         )
         movie_id = result_0_tmdb_search_movie.data["results"][selected_number]["id"]
