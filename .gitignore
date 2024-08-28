@@ -1,7 +1,8 @@
 .idea
-/__pycache__
+*/__pycache__
 venv
 *.json
 test.py
 /test
 poetry.lock
+.vscode

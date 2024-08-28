@@ -1,15 +1,16 @@
 [project]
-name = "rename"
-version = "0.1.0"
-description = "Add your description here"
+name = "AlistMediaRename"
+version = "2.0.0"
+description = "从 The Movie Database(TMDb) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。"
 authors = [
-    { name = "Hardy", email = "hardyli719@outlook.com" }
+    { name = "Hardy", email = "oharcy@outlook.com" }
 ]
 dependencies = [
     "colorama>=0.4.6",
     "natsort>=8.4.0",
     "pyotp>=2.9.0",
     "requests>=2.31.0",
+    "pydantic>=2.8.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -20,10 +21,12 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "build>=1.2.1",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rename"]
+packages = ["src/AlistMediaRename"]
