@@ -1,6 +1,6 @@
 import pyotp
 import requests
-from utils import Debug
+from .utils import PrintMessage
 
 # from requests_toolbelt import MultipartEncoder
 
@@ -33,7 +33,7 @@ class AlistApi:
         self.timeout = 10
         self.silence = False
 
-    @Debug.output_alist_login
+    @PrintMessage.output_alist_login
     def login(self) -> dict:
         """
         获取登录Token
@@ -60,7 +60,7 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    @Debug.output_alist_file_list
+    @PrintMessage.output_alist_file_list
     def file_list(
         self,
         path: str = "/",
@@ -97,7 +97,7 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_alist_rename
+    @PrintMessage.output_alist_rename
     def rename(self, name: str, path: str) -> dict:
         """
         重命名文件/文件夹.
@@ -118,7 +118,7 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_alist_move
+    @PrintMessage.output_alist_move
     def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
         """
         移动文件/文件夹.
@@ -138,7 +138,7 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_alist_mkdir
+    @PrintMessage.output_alist_mkdir
     def mkdir(self, path: str) -> dict:
         """
         新建文件夹.
@@ -156,7 +156,7 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_alist_remove
+    @PrintMessage.output_alist_remove
     def remove(self, path: str, names: list) -> dict:
         """
         删除文件/文件夹.
@@ -177,7 +177,7 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_alist_download_link
+    @PrintMessage.output_alist_download_link
     def download_link(self, path: str, password=None) -> dict:
         """
         获取文件下载链接.
@@ -243,7 +243,7 @@ class AlistApi:
 
         return {"注意": "查看输出内容"}
 
-    @Debug.output_alist_disk_list
+    @PrintMessage.output_alist_disk_list
     def disk_list(self) -> dict:
         """
         获取已添加存储列表.
@@ -276,7 +276,7 @@ class TMDBApi:
         self.api_key = api_key
         self.timeout = 10
 
-    @Debug.output_tmdb_tv_info
+    @PrintMessage.output_tmdb_tv_info
     def tv_info(self, tv_id: str, language: str = "zh-CN") -> dict:
         """
         根据提供的id获取剧集信息.
@@ -293,7 +293,7 @@ class TMDBApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_tmdb_search_tv
+    @PrintMessage.output_tmdb_search_tv
     def search_tv(self, keyword: str, language: str = "zh-CN") -> dict:
         """
         根据关键字匹配剧集, 获取相关信息.
@@ -311,7 +311,7 @@ class TMDBApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_tmdb_tv_season_info
+    @PrintMessage.output_tmdb_tv_season_info
     def tv_season_info(
         self, tv_id: str, season_number: int, language: str = "zh-CN"
     ) -> dict:
@@ -331,7 +331,7 @@ class TMDBApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_tmdb_movie_info
+    @PrintMessage.output_tmdb_movie_info
     def movie_info(self, movie_id: str, language: str = "zh-CN") -> dict:
         """
         根据提供的id获取电影信息.
@@ -350,7 +350,7 @@ class TMDBApi:
         # 获取请求结果
         return r.json()
 
-    @Debug.output_tmdb_search_movie
+    @PrintMessage.output_tmdb_search_movie
     def search_movie(self, keyword: str, language: str = "zh-CN") -> dict:
         """
         根据关键字匹配电影, 获取相关信息.

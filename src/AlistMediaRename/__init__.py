@@ -1,10 +1,10 @@
-from api import AlistApi, TMDBApi
-from config import Config
-from utils import Tools, Tasks, PrintMessage, Debug
-from models import Task, TaskResult, Formated_Variables
+from .api import AlistApi, TMDBApi
+from .config import Config
+from .utils import Tools, Tasks, PrintMessage, Debug
+from .models import Task, TaskResult, Formated_Variables
 
 
-class AlistMediaRename:
+class Amr:
     """
     利用TMDB api获取剧集标题, 并对Alist对应剧集文件进行重命名, 便于播放器刮削识别剧集
     文件命名格式: {剧集名称}-S{季度}E{集数}.{该集标题}.{文件后缀}
@@ -188,7 +188,7 @@ class AlistMediaRename:
         )
 
         # 等待用户确认
-        Tools.require_confirmation()
+        PrintMessage.require_confirmation()
 
         # 进行文件重命名操作
         # 任务列表
@@ -382,7 +382,7 @@ class AlistMediaRename:
         )
 
         # 等待用户确认
-        Tools.require_confirmation()
+        PrintMessage.require_confirmation()
 
         # 进行文件重命名操作
         # 任务列表

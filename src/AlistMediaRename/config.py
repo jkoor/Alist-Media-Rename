@@ -1,4 +1,5 @@
-from models import Settings
+from .models import Settings
+from .utils import PrintMessage
 
 
 class Config:
@@ -12,7 +13,8 @@ class Config:
         if self.filepath:
             try:
                 self.load(self.filepath)
-            except FileNotFoundError as e:
+                
+            except Exception as e:
                 print(f"加载配置文件失败: {e}")
                 print("请重新设置配置参数")
                 self.set()
@@ -51,7 +53,7 @@ class Config:
             file.write(self.settings.model_dump_json())
 
         if output:
-            print(f"\n配置文件保存路径: {filepath}")
+            print(f"\n{PrintMessage.ColorStr.green("[✓]")} 配置文件保存路径: {filepath}")
             print("其余自定义设置请修改保存后的配置文件")
 
         return True
@@ -65,6 +67,6 @@ class Config:
         self.settings = Settings.model_validate_json(data)
 
         if output:
-            print(f"\n配置文件加载路径: {filepath}")
+            print(f"\n{PrintMessage.ColorStr.green("[✓]")} 配置文件加载路径: {filepath}")
 
         return True
