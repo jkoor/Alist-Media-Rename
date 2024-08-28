@@ -14,13 +14,13 @@ class Amr:
 
     """
 
-    def __init__(self, config_filepath: str | None = None):
+    def __init__(self, config: Config | str):
         """
         初始化参数
         :param config: 配置参数
         """
 
-        self.config = Config(config_filepath)
+        self.config = config if type(config) is Config else Config(config)
 
         # 初始化 AlistApi 和 TMDBApi
         self.alist = AlistApi(

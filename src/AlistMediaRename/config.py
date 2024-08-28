@@ -5,7 +5,7 @@ from .utils import PrintMessage
 class Config:
     """配置参数"""
 
-    def __init__(self, filepath: str | None = None):
+    def __init__(self, filepath = None):
         """初始化参数"""
         self.filepath = filepath
         self.settings = Settings()
