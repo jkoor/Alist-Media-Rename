@@ -1,4 +1,5 @@
-# Alist-Media-Rename
+- [ ] # Alist-Media-Rename
+
 
 从 The Movie Database(TMDb) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。
 
@@ -24,11 +25,14 @@
 
    Python(>=3.6)，建议使用 3.10 版本，已在 Windwos 11/Linux 测试通过。
 
-2. 下载项目中的文件到本地，建议使用 git 命令`git clone https://github.com/jkoor/Alist-Media-Rename.git`
+2. 下载`src/main.py`文件，使用 `pip install AlistMediaRename` 或其他命令从PyPI安装模块
 
-3. 进入项目文件夹使用`pip install -r requirements.txt`安装依赖，或者手动安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`
+   > 若想使用本地模块请进行操作：
+   >
+   > 1. 下载项目中的文件到本地，建议使用 git 命令`git clone https://github.com/jkoor/Alist-Media-Rename.git`
+   > 2. 安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`, `pydantic`
 
-4. 获取 TMDb API 密钥
+3. 获取 TMDb API 密钥
 
    首次运行会要去输入 TMDb API 密钥， 用于获取 TMDb 电影/剧集信息，可前往 TMDb 官网免费申请，链接：https://developers.themoviedb.org/3/getting-started/introduction
 
@@ -106,76 +110,138 @@ python main.py -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 | -n, --number    | 可选 | 1             | 指定从第几集开始命名                      |
 | -c, --config    | 可选 | ./config.json | 指定配置文件路径                          |
 | -f, --folderdir | 可选 | 1             | 覆盖配置文件中的`media_folder_rename`参数 |
-| --noasync       | 可选 |               | 不使用异步操作，若出现请求频繁开始        |
-| --debug         | 可选 | False         | debug 模式，直接显示错误信息              |
 | -h, --help      |  /   |               | 显示使用帮助信息                          |
 | -v, --version   |  /   |               | 显示版本信息                              |
 
-
-
 **配置文件**
 
-在本地保存的配置文件中，除基本的登录参数外，还包含以下几个可配置项
+在本地保存的配置文件中，除基本的登录参数外，还包含几个可配置项
 
-| 参数                   | 类型          | 默认值                                         |
-| ---------------------- | ------------- | ---------------------------------------------- |
-| alist_guest            | *bool*        | True / **False**                               |
-| tmdb_language          | *str*         | zh-CN                                          |
-| tv_name_format         | *str*         | {name}-S{season:0>2}E{episode:0>2}.{title}     |
-| exclude_renamed        | *bool*        | True / **False**                               |
-| rename_by_async        | *bool*        | **True** / False                               |
-| media_folder_rename    | *int*         |  0 / **1** / 2                                 |
-| tv_season_format       | *str*         | Season {season}                                |
-| video_regex_pattern    | *list*        | \(\?i\)\.\*\\\.\(flv\|mov\|mp4\|mkv\|rmvb\)\$  |
-| subtitle_regex_pattern | *list*        | \(\?i\)\.\*\\\.\(ass\|srt\|ssa\|sub\)\$        |
+| alist 相关参数 | 类型   | 默认值           |
+| -------------- | ------ | ---------------- |
+| url            | str    | ""               |
+| guest_mode     | *bool* | True / **False** |
+| user           | str    | ""               |
+| password       | str    | ""               |
+| totp           | str    | ""               |
 
-1. `alist_guest`: 使用访客身份权限，不登陆
+1. `url`: alist 主页
+1. `guest_mode`: 使用访客身份权限，不需要登陆
+1. `user`: 用户名
+1. `password`: 密码
+1. `totp`: 二次验证密钥
 
-2. `tmdb_language`: 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
+| TMDB 相关参数 | 类型 | 默认值                       |
+| ------------- | ---- | ---------------------------- |
+| api_url       | str  | https://api.themoviedb.org/3 |
+| api_key       | str  | ""                           |
+| language      | str  | "zh-CN"                      |
 
-3. `tv_name_format`：文件命名格式，使用python的`format()`函数识别，若不了解，请勿随机改动。
+1. `api_url`: TMDB API 链接
+2. `api_key`: TMDB API 密钥
+3. `language`: 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
 
-   默认命名：刀剑神域-S01E01.剑的世界.mp4
+| amr 相关参数           | 类型   | 默认值                                        |
+| ---------------------- | ------ | --------------------------------------------- |
+| exclude_renamed        | *bool* | ***True*** / False                            |
+| rename_by_async        | *bool* | ***True*** / False                            |
+| media_folder_rename    | bool   | ***True*** / False                            |
+| folder_name_format     | *str*  | {name} ({year})                               |
+| movie_name_format      | *str*  | {name} ({year})                               |
+| tv_name_format         | *str*  | {name}-S{season:0>2}E{episode:0>2}.{title}    |
+| video_regex_pattern    | *list* | \(\?i\)\.\*\\\.\(flv\|mov\|mp4\|mkv\|rmvb\)\$ |
+| subtitle_regex_pattern | *list* | \(\?i\)\.\*\\\.\(ass\|srt\|ssa\|sub\)\$       |
 
-   更改举例：{name}-第{season:0>1}季-第{episode:0>3}集
-
-   文件命名：刀剑神域-第1季-第001集.mp4
-
-4. `exclude_renamed`: 是否排除已重命名成功的文件
-
+1. `exclude_renamed`: 是否排除已重命名成功的文件
 5. `rename_by_async`: 是否使用异步操作进行重命名
 
-> 异步操作可以极大地缩短多文件重命名所需时间，但由于各网盘的限制方式不同，若出现请求频繁状态，可使用`--noasync`临时禁用，或者将此参数设置为`False`永久禁用。
+> 异步操作可以极大地缩短多文件重命名所需时间，但由于各网盘的限制方式不同，若出现请求频繁状态，可将此参数设置为`False`禁用。
 
 6. `media_folder_rename`: 指定是否对父文件夹重命名
 
-   `0`: 不对父文件夹重命名
+7. `folder_name_format`: 父文件夹重命名格式，使用python `format()`函数识别
 
-   `1`: 命名格式为【剧名 (首播年份)】，如：刀剑神域 (2012)
+   可用变量：参考 `movie_name_format` / `tv_name_format`
 
-   `2`: 按季度文件夹命名
+8. `movie_name_format`: 电影文件重命名格式，使用python `format()`函数识别
 
-7. `tv_season_format`: 季度文件夹命名格式， 如：Season 1
+   可用变量：
 
-8. `video_regex_pattern`: 需要识别的视频文件正则表达式
+   **name**: 电影名称
 
-9. `subtitle_regex_pattern`: 需要识别的字幕文件正则表达式
+   **original_name**: 电影原始名称（未翻译名称）
+
+   **year**: 上映年份
+
+   **release_date**: 上映日期
+
+   **language**: 电影语言
+
+   **region**: 电影所属地区
+
+   **rating**: 电影评分（TMDB）
+
+   默认命名：{name} ({year}) -> 复仇者联盟 (2012).mp4
 
 
+8. `tv_name_format`：剧集文件重命名格式，使用python `format()`函数识别
 
-## 调用函数
+   可用变量：
+
+   **name**: 剧集名称
+
+   **original_name**: 剧集原始名称（未翻译名称）
+
+   **year**: 剧集首播年份
+
+   **first_air_date**: 剧集首播年份
+
+   **language**: 剧集语言
+
+   **region**: 剧集所属地区
+
+   **rating**: 剧集评分（TMDB）
+
+   **season**: 剧集季度
+
+   单集可用变量：
+
+   **episode**: 单集序号
+
+   **air_date**: 单集放映日期
+
+   **episode_rating**: 单集评分（TMDB）
+
+   **title**: 单集标题
+
+   默认命名：{name}-S{season:0>2}E{episode:0>2}.{title} -> 刀剑神域-S01E01.剑的世界.mp4
+
+9. `video_regex_pattern`: 需要识别的视频文件正则表达式
+
+10. `subtitle_regex_pattern`: 需要识别的字幕文件正则表达式
+
+## 模块使用
 
 若需要在其他 Python 文件中调用本程序，可参考以下内容：
 
-在`meida_rename.py`中定义了一个类`AlistMediaRename()`，根据代码注释要求传入相关参数，即可调用本程序的主函数
+在`AlistMediaRename`文件夹定义了一个类Amr()，根据代码注释要求传入相关参数，即可调用本程序的主函数
 
 ```python
-from media_name import AlistMediaRename, Config
+from AlistMediaRename import Amr, Config
 
-# 定义设置类
-config = Config('alist_url', 'alist_user', 'alist_password', 'alist_totp','tmdb_key')
-# 创建类
+# 第一种实例化方法，定义一个配置项
+config = Config()
+config.alist.url = "xxx"
+config.alist.user = "xxx"
+config.alist.password = "xxx"
+config.alist.totp = "xxx"
+config.tmdb.api_key = "xxx"
+config.save("./config.json") # 保存配置到文件
+config.load("./config.json") # 从文件中读取配置
 amr = AlistMediaRename(config)
+# 第二种实例化方法，从文件中读取配置
+amr = AlistMediaRename("./config.json") # 从文件中读取配置，文件不存在则会自动创建
+
 # 根据电影id获取TMDb信息，并重命名‘dir’指定路径文件
 amr.movie_rename_id('keyword', 'dir', 'password')
 # 根据电影关键词获取TMDb信息，并重命名‘dir’指定路径文件
@@ -187,33 +253,6 @@ amr.tv_rename_keyword('keyword', 'dir', 'password')
 
 ```
 
-在`api`文件中定义了两个类，一个是 `AlistApi()`，一个是`TMDBApi`
-
-`AlistApi()`目前已经实现了对 Alist 文件的常用操作，包括：获取文件列表/新建文件夹/重命名/删除/移动/上传/获取下载链接。
-
-```python
-from api import AlistApi
-# 定义类，类初始化时会调用login()函数，自动登录
-alist = AlistApi('url', 'user', 'password', 'totp_code')
-# 获取指定路径文件列表
-alist.file_list('path', 'password')
-# 重命名指定路径文件/文件夹
-alist.rename('name', 'path')
-# 移动文件到指定路径
-alist.move([names], 'src_dir', 'dst_dir')
-# 新建文件夹
-alist.mkdir('path')
-# 删除文件/文件夹
-alist.remove('path', [names])
-# 获取文件下载链接
-alist.download_link('path', 'password')
-# 上传文件
-alist.upload('path', 'file')
-# 获取存储驱动列表
-alist.disk_list()
-
-```
-
 
 
 ## 最后
@@ -222,7 +261,7 @@ alist.disk_list()
 
 - TMDb Api 在短时间内频繁使用会限制使用，如出现此情况请稍后再试
 
-- 欢迎邮件联系，一起交流探讨：hardyleoo@outlook.com
+- 欢迎邮件联系，一起交流探讨：oharcy@outlook.com
 
 - 本程序使用 TMDB API，但未经 TMDB 认可或认证。
 

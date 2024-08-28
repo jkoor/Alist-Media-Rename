@@ -1,12 +1,6 @@
-# -*- coding: utf-8 -*-
-# @Time : 2023/4/28/0028 18:10
-# @Author : JKOR
-# @File : api.py
-# @Software: PyCharm
-
 import pyotp
 import requests
-from utils import DebugDecorators
+from .utils import PrintMessage
 
 # from requests_toolbelt import MultipartEncoder
 
@@ -17,7 +11,9 @@ class AlistApi:
     Alist api非官方说明文档(来自网友分享): https://zhuanlan.zhihu.com/p/587004798
     """
 
-    def __init__(self, url: str, user: str = None, password: str = None, totp_code: str = None):
+    def __init__(
+        self, url: str, user: str = "", password: str = "", totp_code: str = ""
+    ):
         """
         初始化参数.
 
@@ -30,15 +26,14 @@ class AlistApi:
         self.url = url.rstrip("/")
         self.user = user
         self.password = password
-        self.totp_code = pyotp.TOTP(totp_code)  # 使用self.totp_code.now() 生成实时 TOTP 验证码
+        # 使用self.totp_code.now() 生成实时 TOTP 验证码
+        self.totp_code = pyotp.TOTP(totp_code)
         self.login_success = False
         self.token = ""
         self.timeout = 10
         self.silence = False
-        # self.login()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_login
+    @PrintMessage.output_alist_login
     def login(self) -> dict:
         """
         获取登录Token
@@ -65,10 +60,14 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_file_list
+    @PrintMessage.output_alist_file_list
     def file_list(
-        self, path: str = "/", password=None, refresh: bool = True, per_page: int = 0, page: int = 1
+        self,
+        path: str = "/",
+        password=None,
+        refresh: bool = True,
+        per_page: int = 0,
+        page: int = 1,
     ) -> dict:
         """
         获取文件列表,并格式化输出所有文件名称.
@@ -98,8 +97,7 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_rename
+    @PrintMessage.output_alist_rename
     def rename(self, name: str, path: str) -> dict:
         """
         重命名文件/文件夹.
@@ -113,13 +111,14 @@ class AlistApi:
         post_url = self.url + "/api/fs/rename"
         post_headers = {"Authorization": self.token}
         post_json = {"name": name, "path": path}
-        r = requests.post(url=post_url, headers=post_headers, json=post_json, timeout=self.timeout)
+        r = requests.post(
+            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+        )
 
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_move
+    @PrintMessage.output_alist_move
     def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
         """
         移动文件/文件夹.
@@ -133,12 +132,13 @@ class AlistApi:
         post_url = self.url + "/api/fs/move"
         post_headers = {"Authorization": self.token}
         post_json = {"src_dir": src_dir, "dst_dir": dst_dir, "names": names}
-        r = requests.post(url=post_url, headers=post_headers, json=post_json, timeout=self.timeout)
+        r = requests.post(
+            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+        )
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_mkdir
+    @PrintMessage.output_alist_mkdir
     def mkdir(self, path: str) -> dict:
         """
         新建文件夹.
@@ -150,12 +150,13 @@ class AlistApi:
         post_url = self.url + "/api/fs/mkdir"
         post_headers = {"Authorization": self.token}
         post_json = {"path": path}
-        r = requests.post(url=post_url, headers=post_headers, json=post_json, timeout=self.timeout)
+        r = requests.post(
+            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+        )
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_remove
+    @PrintMessage.output_alist_remove
     def remove(self, path: str, names: list) -> dict:
         """
         删除文件/文件夹.
@@ -169,13 +170,14 @@ class AlistApi:
         post_url = self.url + "/api/fs/remove"
         post_headers = {"Authorization": self.token}
         post_json = {"dir": path, "names": names}
-        r = requests.post(url=post_url, headers=post_headers, json=post_json, timeout=self.timeout)
+        r = requests.post(
+            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+        )
 
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_download_link
+    @PrintMessage.output_alist_download_link
     def download_link(self, path: str, password=None) -> dict:
         """
         获取文件下载链接.
@@ -188,7 +190,9 @@ class AlistApi:
         post_url = self.url + "/api/fs/get"
         post_headers = {"Authorization": self.token}
         post_json = {"path": path, "password": password}
-        r = requests.post(url=post_url, headers=post_headers, json=post_json, timeout=self.timeout)
+        r = requests.post(
+            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+        )
         # 获取请求结果
         return r.json()
 
@@ -239,8 +243,7 @@ class AlistApi:
 
         return {"注意": "查看输出内容"}
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_alist_disk_list
+    @PrintMessage.output_alist_disk_list
     def disk_list(self) -> dict:
         """
         获取已添加存储列表.
@@ -262,19 +265,18 @@ class TMDBApi:
     TMDB api官方说明文档(https://developers.themoviedb.org/3)
     """
 
-    def __init__(self, key: str):
+    def __init__(self, api_url: str, api_key: str):
         """
         初始化参数
 
         :param key: TMDB Api Key(V3)
         """
 
-        self.key = key
         self.api_url = "https://api.themoviedb.org/3"
-        self.timeout = 5
+        self.api_key = api_key
+        self.timeout = 10
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_tmdb_tv_info
+    @PrintMessage.output_tmdb_tv_info
     def tv_info(self, tv_id: str, language: str = "zh-CN") -> dict:
         """
         根据提供的id获取剧集信息.
@@ -286,13 +288,12 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}"
-        post_params = {"api_key": self.key, "language": language}
+        post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_tmdb_search_tv
+    @PrintMessage.output_tmdb_search_tv
     def search_tv(self, keyword: str, language: str = "zh-CN") -> dict:
         """
         根据关键字匹配剧集, 获取相关信息.
@@ -304,15 +305,16 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/search/tv"
-        post_params = {"api_key": self.key, "query": keyword, "language": language}
+        post_params = {"api_key": self.api_key, "query": keyword, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_tmdb_tv_season_info
-    def tv_season_info(self, tv_id: str, season_number: int, language: str = "zh-CN") -> dict:
+    @PrintMessage.output_tmdb_tv_season_info
+    def tv_season_info(
+        self, tv_id: str, season_number: int, language: str = "zh-CN"
+    ) -> dict:
         """
         获取指定季度剧集信息.
         :param tv_id: 剧集id
@@ -323,14 +325,13 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}/season/{season_number}"
-        post_params = {"api_key": self.key, "language": language}
+        post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_tmdb_movie_info
+    @PrintMessage.output_tmdb_movie_info
     def movie_info(self, movie_id: str, language: str = "zh-CN") -> dict:
         """
         根据提供的id获取电影信息.
@@ -343,14 +344,13 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/movie/{movie_id}"
-        post_params = {"api_key": self.key, "language": language}
+        post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json()
 
-    @DebugDecorators.catch_exceptions
-    @DebugDecorators.output_tmdb_search_movie
+    @PrintMessage.output_tmdb_search_movie
     def search_movie(self, keyword: str, language: str = "zh-CN") -> dict:
         """
         根据关键字匹配电影, 获取相关信息.
@@ -362,7 +362,7 @@ class TMDBApi:
 
         # 发送请求
         post_url = f"{self.api_url}/search/movie"
-        post_params = {"api_key": self.key, "query": keyword, "language": language}
+        post_params = {"api_key": self.api_key, "query": keyword, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果

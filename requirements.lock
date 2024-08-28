@@ -6,21 +6,32 @@
 #   features: []
 #   all-features: false
 #   with-sources: false
+#   generate-hashes: false
+#   universal: false
 
 -e file:.
+annotated-types==0.7.0
+    # via pydantic
 certifi==2024.2.2
     # via requests
 charset-normalizer==3.3.2
     # via requests
 colorama==0.4.6
-    # via rename
+    # via alistmediarename
 idna==3.7
     # via requests
 natsort==8.4.0
-    # via rename
+    # via alistmediarename
+pydantic==2.8.2
+    # via alistmediarename
+pydantic-core==2.20.1
+    # via pydantic
 pyotp==2.9.0
-    # via rename
+    # via alistmediarename
 requests==2.31.0
-    # via rename
+    # via alistmediarename
+typing-extensions==4.12.2
+    # via pydantic
+    # via pydantic-core
 urllib3==2.2.1
     # via requests
