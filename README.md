@@ -22,19 +22,29 @@
 
    Python(>=3.6)，建议使用 3.10 版本，已在 Windwos 11/Linux 测试通过。
 
-2. 下载`src/main.py`文件，使用 `pip install AlistMediaRename` 或其他命令从PyPI安装模块
+2. 安装依赖
+
+   从 PyPI 安装包
+
+   `pip install AlistMediaRename`
+
+   从 PyPI 升级包
+
+   `pip install --upgrade AlistMediaRename`
 
    > 若想使用本地模块请进行操作：
-   >
-   > 1. 下载项目中的文件到本地，建议使用 git 命令`git clone https://github.com/jkoor/Alist-Media-Rename.git`
-   > 2. 安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`, `pydantic`
+   > 
+   > 下载项目中的文件到本地，建议使用 git 命令`git clone https://github.com/jkoor/Alist-Media-Rename.git`
+   > 安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`, `pydantic`
 
-3. 获取 TMDb API 密钥
+4. 下载`src/main.py` 主程序文件
+
+5. 获取 TMDb API 密钥
 
    首次运行会要去输入 TMDb API 密钥， 用于获取 TMDb 电影/剧集信息，可前往 TMDb 官网免费申请，链接：https://developers.themoviedb.org/3/getting-started/introduction
 
 
-5. Alist 2FA 验证（未开启可跳过）
+6. Alist 2FA 验证（未开启可跳过）
 
    若用户开启了 Alist 2FA 验证功能，则需要提供验证密钥（非6位验证码），可通过保存验证码的对应 APP 获取，或者扫描初次绑定的二维码，可获取一串代码，最后的 sercet 字段即为 base64 密钥，格式为一串包含数字和字母的长字段，如：2ELR4M···KVH563X
 
