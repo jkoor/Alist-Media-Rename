@@ -19,15 +19,14 @@ requires-python = ">= 3.8"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.rye]
-managed = true
-dev-dependencies = [
-    "build>=1.2.1",
-    "pytest>=8.3.2",
-]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/AlistMediaRename"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+]

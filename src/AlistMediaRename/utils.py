@@ -333,9 +333,9 @@ class PrintMessage:
             seasons = return_data["seasons"]
             print(f"{' 开播时间 ':<10}{'集 数':^8}{'序 号':^10}{'剧 名'}")
             print(f"{'----------':<12}{'----':^12}{'-----':^12}{'----------------'}")
-            for season in seasons:
+            for i, season in enumerate(seasons):
                 print(
-                    f"{str(season['air_date']):<12}{season['episode_count']:^12}{season['season_number']:^12}{season['name']}"
+                    f"{str(season['air_date']):<12}{season['episode_count']:^12}{i:^12}{season['name']}"
                 )
             print("")
 
