@@ -84,7 +84,7 @@ class Amr:
             func=self.tmdb.tv_info,
             args=[tv_id, self.config.tmdb.language],
         )
-        # task_1: 刷新文件夹所在父文件夹，防止Alist为及时刷新，导致无法获取文件列表
+        # task_1: 刷新文件夹所在父文件夹，防止Alist未及时刷新，导致无法获取文件列表
         task_1_alist_file_list = Task(
             name="刷新文件夹所在父文件夹",
             func=self.alist.file_list,
