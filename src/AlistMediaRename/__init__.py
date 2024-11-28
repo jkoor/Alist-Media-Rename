@@ -155,6 +155,8 @@ class Amr:
             )
         )
 
+        episode_list_subtitle = episode_list_video.copy()
+
         # 获取视频字幕文件列表
         file_list = list(
             map(lambda x: x["name"], result_3_alist_file_list.data["data"]["content"])
@@ -169,7 +171,7 @@ class Amr:
             video_list, episode_list_video, self.config.amr.exclude_renamed
         )
         subtitle_list, episode_list_subtitle = Tools.remove_intersection(
-            subtitle_list, episode_list_video, self.config.amr.exclude_renamed
+            subtitle_list, episode_list_subtitle, self.config.amr.exclude_renamed
         )
         # 匹配剧集信息/文件列表
         video_rename_list = Tools.match_episode_files(

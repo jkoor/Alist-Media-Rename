@@ -7,3 +7,5 @@ test.py
 poetry.lock
 .vscode
 .pytest_cache
+/example
+uv.lock
