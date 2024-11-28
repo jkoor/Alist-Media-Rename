@@ -206,7 +206,7 @@ class Amr:
                 Task(
                     name="重命名文件",
                     func=self.alist.rename,
-                    args=[file["target_name"], folder_path + file["original_name"]],
+                    args=[Tools.replace_illegal_char(file["target_name"]), folder_path + file["original_name"]],
                 )
             )
         # 运行任务
@@ -220,7 +220,7 @@ class Amr:
         task_5_alist_rename = Task(
             name="重命名父文件夹",
             func=self.alist.rename,
-            args=[folder_rename_title, folder_path[:-1]],
+            args=[Tools.replace_illegal_char(folder_rename_title), folder_path[:-1]],
         )
         # 运行任务
         if self.config.amr.media_folder_rename:
@@ -432,7 +432,7 @@ class Amr:
                 Task(
                     name="重命名文件",
                     func=self.alist.rename,
-                    args=[file["target_name"], folder_path + file["original_name"]],
+                    args=[Tools.replace_illegal_char(file["target_name"]), folder_path + file["original_name"]],
                 )
             )
         # 运行任务
@@ -446,7 +446,7 @@ class Amr:
         task_4_alist_rename = Task(
             name="重命名父文件夹",
             func=self.alist.rename,
-            args=[folder_rename_title, folder_path[:-1]],
+            args=[Tools.replace_illegal_char(folder_rename_title), folder_path[:-1]],
         )
         # 运行任务
         if self.config.amr.media_folder_rename:
