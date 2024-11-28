@@ -456,13 +456,13 @@ class Amr:
                 [task_4_alist_rename], self.config.amr.rename_by_async
             )
         else:
-            [result_4_alist_rename] = TaskResult(
+            [result_4_alist_rename] = [TaskResult(
                 func_name="重命名父文件夹",
                 args=[],
                 success=True,
                 data={"result": "未重命名父文件夹"},
                 error="",
-            )
+            )]
 
         ### ------------------------ 5. 刷新文件夹 -------------------- ###
         # 任务列表
