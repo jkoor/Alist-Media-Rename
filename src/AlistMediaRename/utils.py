@@ -619,6 +619,12 @@ class Tools:
             renamed_folder_title = ""
         return renamed_folder_title
 
+    @staticmethod
+    def replace_illegal_char(filename: str, extend=True) -> str:
+        """替换非法字符"""
+        illegal_char = r"[\/:*?\"<>|]" if extend else r"[/]"
+        return re.sub(illegal_char, "_", filename)
+
 
 class Tasks:
     """多任务运行（异步/同步）"""

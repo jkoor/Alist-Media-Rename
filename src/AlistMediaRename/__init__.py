@@ -20,6 +20,8 @@ class Amr:
         :param config: 配置参数
         """
 
+        self.version = "2.5.0"
+
         self.config = config if type(config) is Config else Config(config)
 
         # 初始化 AlistApi 和 TMDBApi
@@ -155,6 +157,8 @@ class Amr:
             )
         )
 
+        episode_list_subtitle = episode_list_video.copy()
+
         # 获取视频字幕文件列表
         file_list = list(
             map(lambda x: x["name"], result_3_alist_file_list.data["data"]["content"])
@@ -169,7 +173,7 @@ class Amr:
             video_list, episode_list_video, self.config.amr.exclude_renamed
         )
         subtitle_list, episode_list_subtitle = Tools.remove_intersection(
-            subtitle_list, episode_list_video, self.config.amr.exclude_renamed
+            subtitle_list, episode_list_subtitle, self.config.amr.exclude_renamed
         )
         # 匹配剧集信息/文件列表
         video_rename_list = Tools.match_episode_files(
@@ -204,7 +208,7 @@ class Amr:
                 Task(
                     name="重命名文件",
                     func=self.alist.rename,
-                    args=[file["target_name"], folder_path + file["original_name"]],
+                    args=[Tools.replace_illegal_char(file["target_name"]), folder_path + file["original_name"]],
                 )
             )
         # 运行任务
@@ -218,7 +222,7 @@ class Amr:
         task_5_alist_rename = Task(
             name="重命名父文件夹",
             func=self.alist.rename,
-            args=[folder_rename_title, folder_path[:-1]],
+            args=[Tools.replace_illegal_char(folder_rename_title), folder_path[:-1]],
         )
         # 运行任务
         if self.config.amr.media_folder_rename:
@@ -226,13 +230,13 @@ class Amr:
                 [task_5_alist_rename], self.config.amr.rename_by_async
             )
         else:
-            [result_5_alist_rename] = TaskResult(
+            [result_5_alist_rename] = [TaskResult(
                 func_name="重命名父文件夹",
                 args=[],
                 success=True,
                 data={"result": "未重命名父文件夹"},
                 error="",
-            )
+            )]
 
         ### ------------------------ 5. 刷新文件夹 -------------------- ###
         # 任务列表
@@ -430,7 +434,7 @@ class Amr:
                 Task(
                     name="重命名文件",
                     func=self.alist.rename,
-                    args=[file["target_name"], folder_path + file["original_name"]],
+                    args=[Tools.replace_illegal_char(file["target_name"]), folder_path + file["original_name"]],
                 )
             )
         # 运行任务
@@ -444,7 +448,7 @@ class Amr:
         task_4_alist_rename = Task(
             name="重命名父文件夹",
             func=self.alist.rename,
-            args=[folder_rename_title, folder_path[:-1]],
+            args=[Tools.replace_illegal_char(folder_rename_title), folder_path[:-1]],
         )
         # 运行任务
         if self.config.amr.media_folder_rename:
@@ -452,13 +456,13 @@ class Amr:
                 [task_4_alist_rename], self.config.amr.rename_by_async
             )
         else:
-            [result_4_alist_rename] = TaskResult(
+            [result_4_alist_rename] = [TaskResult(
                 func_name="重命名父文件夹",
                 args=[],
                 success=True,
                 data={"result": "未重命名父文件夹"},
                 error="",
-            )
+            )]
 
         ### ------------------------ 5. 刷新文件夹 -------------------- ###
         # 任务列表
