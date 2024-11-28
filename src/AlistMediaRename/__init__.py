@@ -20,6 +20,8 @@ class Amr:
         :param config: 配置参数
         """
 
+        self.version = "2.5.0"
+
         self.config = config if type(config) is Config else Config(config)
 
         # 初始化 AlistApi 和 TMDBApi

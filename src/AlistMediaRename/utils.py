@@ -625,6 +625,7 @@ class Tools:
         illegal_char = r"[\/:*?\"<>|]" if extend else r"[/]"
         return re.sub(illegal_char, "_", filename)
 
+
 class Tasks:
     """多任务运行（异步/同步）"""
 
