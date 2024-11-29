@@ -534,7 +534,9 @@ class PrintMessage:
         else:
             while True:
                 # 获取到多项匹配结果，手动选择
-                number = input(f"查询到以上结果，请输入对应{PrintMessage.ColorStr.green("[序号]")}, 输入{PrintMessage.ColorStr.red("[n]")}退出\t")
+                number = input(
+                    f"查询到以上结果，请输入对应{PrintMessage.ColorStr.green("[序号]")}, 输入{PrintMessage.ColorStr.red("[n]")}退出\t"
+                )
                 if number.lower() == "n":
                     sys.exit(0)
                 if number.isdigit() and 0 <= int(number) < len(result_list):
@@ -564,20 +566,53 @@ class Tools:
     @staticmethod
     def filter_file(file_list: list, pattern: str) -> list:
         """筛选列表，并以自然排序返回"""
-        # 若选择排除已重命名文件, 则过滤已重命名文件
+
         return natsorted([file for file in file_list if re.match(pattern, file)])
 
     @staticmethod
-    def remove_intersection(a: list, b: list, exclude_renamed) -> tuple:
-        """移除两个列表的交集"""
-        if not exclude_renamed:
-            return a, b
-        a_dict = {item.rsplit(".", 1)[0]: item for item in a}
-        b_set = set(b)
-        intersection = set(a_dict.keys()) & b_set
-        a = [a_dict[key] for key in a_dict if key not in intersection]
-        b = [item for item in b if item not in intersection]
-        return a, b
+    def match_episode_files(
+        original_list: list[str],
+        target_list: list[str],
+        exclude_renamed: bool,
+        first_number: int = 1,
+    ) -> list[dict[str, str]]:
+        """匹配文件"""
+
+        # 创建重命名列表
+        rename_list_no_filter: list[dict[str, str]] = []
+        # 创建排除已重命名的列表
+        rename_list_filter: list[dict[str, str]] = []
+
+        # 创建hash表和队列
+        rename_list: list[dict[str, str]] = [{}] * len(target_list)
+        target_dict = {item: i for i, item in enumerate(target_list)}
+        queue = []
+
+        # 优先匹配已重命名的文件
+        for i, item in enumerate(original_list):
+            if item.rsplit(".", 1)[0] in target_list:
+                rename_list[target_dict[item.rsplit(".", 1)[0]]] = {
+                    "original_name": item,
+                    "target_name": item,
+                }
+            else:
+                queue.append(item)
+
+        # 匹配未重命名的文件
+        for i in range(len(target_list)):
+            if rename_list[i] != {}:
+                rename_list_no_filter.append(rename_list[i])
+            if rename_list[i] == {} and len(queue) > 0 and i >= first_number - 1:
+                original_name: str = queue.pop(0)
+                target_name = target_list[i] + "." + original_name.rsplit(".", 1)[1]
+                rename_list_no_filter.append(
+                    {"original_name": original_name, "target_name": target_name}
+                )
+                rename_list_filter.append(
+                    {"original_name": original_name, "target_name": target_name}
+                )
+
+        return rename_list_filter if exclude_renamed else rename_list_no_filter
 
     @staticmethod
     def get_argument(
@@ -587,18 +622,6 @@ class Tools:
         if len(args) > arg_index:
             return args[arg_index]
         return kwargs[kwarg_name]
-
-    @staticmethod
-    def match_episode_files(
-        episode_list: list[str], file_list: list[str], first_number
-    ) -> list[dict[str, str]]:
-        """匹配剧集文件"""
-        episode_list = episode_list[first_number - 1 :]
-        file_rename_list = [
-            {"original_name": x, "target_name": y + "." + x.split(".")[-1]}
-            for x, y in zip(file_list, episode_list)
-        ]
-        return file_rename_list
 
     @staticmethod
     def get_renamed_folder_title(
