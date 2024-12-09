@@ -53,7 +53,7 @@ class Config:
             file.write(self.settings.model_dump_json())
 
         if output:
-            print(f"\n{PrintMessage.ColorStr.green("[✓]")} 配置文件保存路径: {filepath}")
+            print(f"\n{PrintMessage.ColorStr.green('[✓]')} 配置文件保存路径: {filepath}")
             print("其余自定义设置请修改保存后的配置文件")
 
         return True
@@ -67,6 +67,6 @@ class Config:
         self.settings = Settings.model_validate_json(data)
 
         if output:
-            print(f"\n{PrintMessage.ColorStr.green("[✓]")} 配置文件加载路径: {filepath}")
+            print(f"\n{PrintMessage.ColorStr.green('[✓]')} 配置文件加载路径: {filepath}")
 
         return True

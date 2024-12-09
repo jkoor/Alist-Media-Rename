@@ -74,7 +74,7 @@ def command() -> dict:
         "-v",
         "--version",
         action="version",
-        version="AlistMediaRename version : v2.6.0",
+        version="AlistMediaRename version : v2.7.0",
         help="显示版本信息",
     )
     args = parser.parse_args()

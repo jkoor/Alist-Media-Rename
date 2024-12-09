@@ -1,6 +1,6 @@
 [project]
 name = "AlistMediaRename"
-version = "2.6.0"
+version = "2.7.0"
 description = "从 The Movie Database(TMDb) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。"
 authors = [
     { name = "Hardy", email = "oharcy@outlook.com" }
@@ -13,7 +13,7 @@ dependencies = [
     "pydantic>=2.8.2",
 ]
 readme = "README.md"
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 
 [build-system]
 requires = ["hatchling"]
