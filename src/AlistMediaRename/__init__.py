@@ -1,3 +1,4 @@
+from typing import Union
 from .api import AlistApi, TMDBApi
 from .config import Config
 from .utils import Tools, Tasks, PrintMessage, Debug
@@ -14,7 +15,7 @@ class Amr:
 
     """
 
-    def __init__(self, config: Config | str):
+    def __init__(self, config: Union[Config, dict]):
         """
         初始化参数
         :param config: 配置参数

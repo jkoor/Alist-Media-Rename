@@ -2,7 +2,7 @@ import asyncio
 from functools import wraps
 import re
 import sys
-from typing import Any
+from typing import Any, Union
 from natsort import natsorted
 import colorama
 from .models import Task, TaskResult
@@ -494,7 +494,7 @@ class PrintMessage:
         video_rename_list: list[dict[str, str]],
         subtitle_rename_list: list[dict[str, str]],
         folder_rename: bool,
-        renamed_folder_title: str | None,
+        renamed_folder_title: Union[str, None],
         folder_path: str,
     ):
         """打印重命名信息"""
@@ -508,7 +508,7 @@ class PrintMessage:
             print(f"{subtitle['original_name']} -> {subtitle['target_name']}")
         if renamed_folder_title:
             print(
-                f"{PrintMessage.ColorStr.yellow("文件夹重命名")}:\n {folder_path.split('/')[-2]} -> {renamed_folder_title}"
+                f"{PrintMessage.ColorStr.yellow('文件夹重命名')}:\n {folder_path.split('/')[-2]} -> {renamed_folder_title}"
             )
 
     @staticmethod
@@ -517,7 +517,7 @@ class PrintMessage:
         print("")
         while True:
             signal = input(
-                f"确定要重命名吗? {PrintMessage.ColorStr.green("[回车]")}确定, {PrintMessage.ColorStr.red("[n]")}取消\t"
+                f"确定要重命名吗? {PrintMessage.ColorStr.green('[回车]')}确定, {PrintMessage.ColorStr.red('[n]')}取消\t"
             )
             if signal.lower() == "":
                 return True
@@ -535,7 +535,7 @@ class PrintMessage:
             while True:
                 # 获取到多项匹配结果，手动选择
                 number = input(
-                    f"查询到以上结果，请输入对应{PrintMessage.ColorStr.green("[序号]")}, 输入{PrintMessage.ColorStr.red("[n]")}退出\t"
+                    f"查询到以上结果，请输入对应{PrintMessage.ColorStr.green('[序号]')}, 输入{PrintMessage.ColorStr.red('[n]')}退出\t"
                 )
                 if number.lower() == "n":
                     sys.exit(0)
@@ -616,7 +616,7 @@ class Tools:
 
     @staticmethod
     def get_argument(
-        arg_index: int, kwarg_name: str, args: list | tuple, kwargs: dict
+        arg_index: int, kwarg_name: str, args: Union[list, tuple], kwargs: dict
     ) -> str:
         """获取参数"""
         if len(args) > arg_index:

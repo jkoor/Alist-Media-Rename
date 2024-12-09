@@ -20,7 +20,7 @@
 
 1. 环境配置
 
-   Python(>=3.6)，建议使用 3.10 版本，已在 Windwos 11/Linux 测试通过。
+   Python(>=3.9)，建议使用 3.12 版本，已在 Windwos 11/Linux 测试通过。
 
 2. 安装依赖
 
@@ -32,10 +32,9 @@
 
    `pip install --upgrade AlistMediaRename`
 
-   > 若想使用本地模块请进行操作：
-   > 
-   > 下载项目中的文件到本地，建议使用 git 命令`git clone https://github.com/jkoor/Alist-Media-Rename.git`
-   > 安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`, `pydantic`
+   若想使用本地模块请进行操作： 
+   `git clone https://github.com/jkoor/Alist-Media-Rename.git`
+   安装以下四个库：`requests`, `pyotp`, `natsort`, `colorama`, `pydantic`
 
 4. 下载`src/main.py` 主程序文件
 
