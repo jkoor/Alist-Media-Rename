@@ -1,0 +1,60 @@
+# alist 配置项
+alist:
+  # Alist 主页地址
+  url: ""
+  # 使用访客身份权限，不需要登陆，请确保 Alist 服务端开启了访客身份权限
+  guest_mode: false
+  # Alist 用户名
+  user: ""
+  # Alist 密码
+  password: ""
+  # Alist 二次验证密钥,（非6位验证码）
+  totp: ""
+
+# tmdb配置项
+tmdb:
+  # TMDB API 地址
+  api_url: https://api.themoviedb.org/3
+  # TMDB API Key, See: https://developers.themoviedb.org/3/getting-started/introduction
+  api_key: ""
+  # 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
+  language: zh-CN
+
+# amr 配置项
+amr:
+  # 是否排除已重命名成功的文件
+  exclude_renamed: true
+  # 是否使用异步操作进行重命名，由于各网盘的限制方式不同，若出现请求频繁错误请关闭此选项
+  rename_by_async: true
+  # 是否对父文件夹重命名
+  media_folder_rename: false
+  # 电影文件重命名格式， 支持参数：
+  # {name} - 电影名称
+  # {original_name} - 电影原始名称（未翻译名称）
+  # {year} - 上映年份
+  # {release_date} - 上映日期
+  # {language} - 语言
+  # {region} - 地区
+  # {rating} - 评分（TMDB）
+  movie_name_format: "{name} ({year})" # 复仇者联盟 (2012).mp4
+  # 剧集文件重命名格式， 支持参数：
+  # {name} - 剧集名称
+  # {original_name} - 剧集原始名称（未翻译名称）
+  # {year} - 剧集首播年份
+  # {first_air_date} - 剧集首播年份
+  # {language} - 语言
+  # {region} - 地区
+  # {rating} - 评分（TMDB）
+  # {season} - 剧集季度
+  # 单集参数：
+  # {episode} - 单集序号
+  # {air_date} - 单集首播日期
+  # {episode_rating} - 单集评分（TMDB）
+  # {title} - 单集标题
+  tv_name_format: "{name}-S{season:0>2}E{episode:0>2}.{title}" # 刀剑神域-S01E01.剑的世界.mp4
+  # 剧集文件夹重命名格式， 支持参数与电影剧集参数相同：
+  folder_name_format: "{name} ({year})"
+  # 需要识别的视频文件正则表达式
+  video_regex_pattern: (?i).*\.(avi|flv|wmv|mov|mp4|mkv|rm|rmvb)$
+  # 需要识别的字幕文件正则表达式
+  subtitle_regex_pattern: (?i).*\.(ass|srt|ssa|sub)$

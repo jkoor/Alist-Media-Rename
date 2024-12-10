@@ -1,11 +1,8 @@
 .idea
 __pycache__
 venv
-*.json
-test.py
-/test
-poetry.lock
 .vscode
 .pytest_cache
-/example
 uv.lock
+.env
+/test/files

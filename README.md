@@ -122,110 +122,8 @@ python main.py -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 
 **配置文件**
 
-在本地保存的配置文件中，除基本的登录参数外，还包含几个可配置项
+在本地保存的配置文件中，除基本的登录参数外，还包含几个可配置项，根据注释修改即可。
 
-| alist 相关参数 | 类型   | 默认值           |
-| -------------- | ------ | ---------------- |
-| url            | str    | ""               |
-| guest_mode     | *bool* | True / **False** |
-| user           | str    | ""               |
-| password       | str    | ""               |
-| totp           | str    | ""               |
-
-1. `url`: alist 主页
-1. `guest_mode`: 使用访客身份权限，不需要登陆
-1. `user`: 用户名
-1. `password`: 密码
-1. `totp`: 二次验证密钥
-
-| TMDB 相关参数 | 类型 | 默认值                       |
-| ------------- | ---- | ---------------------------- |
-| api_url       | str  | https://api.themoviedb.org/3 |
-| api_key       | str  | ""                           |
-| language      | str  | "zh-CN"                      |
-
-1. `api_url`: TMDB API 链接
-2. `api_key`: TMDB API 密钥
-3. `language`: 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
-
-| amr 相关参数           | 类型   | 默认值                                        |
-| ---------------------- | ------ | --------------------------------------------- |
-| exclude_renamed        | *bool* | ***True*** / False                            |
-| rename_by_async        | *bool* | ***True*** / False                            |
-| media_folder_rename    | bool   | ***True*** / False                            |
-| folder_name_format     | *str*  | {name} ({year})                               |
-| movie_name_format      | *str*  | {name} ({year})                               |
-| tv_name_format         | *str*  | {name}-S{season:0>2}E{episode:0>2}.{title}    |
-| video_regex_pattern    | *list* | \(\?i\)\.\*\\\.\(flv\|mov\|mp4\|mkv\|rmvb\)\$ |
-| subtitle_regex_pattern | *list* | \(\?i\)\.\*\\\.\(ass\|srt\|ssa\|sub\)\$       |
-
-1. `exclude_renamed`: 是否排除已重命名成功的文件
-5. `rename_by_async`: 是否使用异步操作进行重命名
-
-> 异步操作可以极大地缩短多文件重命名所需时间，但由于各网盘的限制方式不同，若出现请求频繁状态，可将此参数设置为`False`禁用。
-
-6. `media_folder_rename`: 指定是否对父文件夹重命名
-
-7. `folder_name_format`: 父文件夹重命名格式，使用python `format()`函数识别
-
-   可用变量：参考 `movie_name_format` / `tv_name_format`
-
-8. `movie_name_format`: 电影文件重命名格式，使用python `format()`函数识别
-
-   可用变量：
-
-   **name**: 电影名称
-
-   **original_name**: 电影原始名称（未翻译名称）
-
-   **year**: 上映年份
-
-   **release_date**: 上映日期
-
-   **language**: 电影语言
-
-   **region**: 电影所属地区
-
-   **rating**: 电影评分（TMDB）
-
-   默认命名：{name} ({year}) -> 复仇者联盟 (2012).mp4
-
-
-8. `tv_name_format`：剧集文件重命名格式，使用python `format()`函数识别
-
-   可用变量：
-
-   **name**: 剧集名称
-
-   **original_name**: 剧集原始名称（未翻译名称）
-
-   **year**: 剧集首播年份
-
-   **first_air_date**: 剧集首播年份
-
-   **language**: 剧集语言
-
-   **region**: 剧集所属地区
-
-   **rating**: 剧集评分（TMDB）
-
-   **season**: 剧集季度
-
-   单集可用变量：
-
-   **episode**: 单集序号
-
-   **air_date**: 单集放映日期
-
-   **episode_rating**: 单集评分（TMDB）
-
-   **title**: 单集标题
-
-   默认命名：{name}-S{season:0>2}E{episode:0>2}.{title} -> 刀剑神域-S01E01.剑的世界.mp4
-
-9. `video_regex_pattern`: 需要识别的视频文件正则表达式
-
-10. `subtitle_regex_pattern`: 需要识别的字幕文件正则表达式
 
 ## 模块使用
 
@@ -245,9 +143,9 @@ config.alist.totp = "xxx"
 config.tmdb.api_key = "xxx"
 config.save("./config.json") # 保存配置到文件
 config.load("./config.json") # 从文件中读取配置
-amr = AlistMediaRename(config)
+amr = Amr(config)
 # 第二种实例化方法，从文件中读取配置
-amr = AlistMediaRename("./config.json") # 从文件中读取配置，文件不存在则会自动创建
+amr = Amr("./config.json") # 从文件中读取配置，文件不存在则会自动创建
 
 # 根据电影id获取TMDb信息，并重命名‘dir’指定路径文件
 amr.movie_rename_id('keyword', 'dir', 'password')

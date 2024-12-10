@@ -52,7 +52,7 @@ def command() -> dict:
         "--config",
         action="store",
         help="指定配置文件路径, 默认为程序所在路径(可选)",
-        default="./config.json",
+        default="./config.yaml",
     )
     parser.add_argument(
         "-f", "--folderdir", action="store", help="重命名父文件夹(可选)"
@@ -74,7 +74,7 @@ def command() -> dict:
         "-v",
         "--version",
         action="version",
-        version="AlistMediaRename version : v2.6.0",
+        version="AlistMediaRename version : v2.7.0",
         help="显示版本信息",
     )
     args = parser.parse_args()
