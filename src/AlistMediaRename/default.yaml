@@ -1,0 +1,105 @@
+# alist 配置项
+alist:
+  # description: Alist 主页地址
+  # type: string
+  # example: https://127.0.0.1:5244
+  url: ""
+
+  # description: 使用访客身份权限，不需要登陆，请确保 Alist 服务端开启了访客身份权限
+  # type: boolean
+  # example: true/false
+  guest_mode: false
+
+  # description: Alist 用户名
+  # type: string
+  # example: admin
+  user: ""
+
+  # description: Alist 密码
+  # type: string
+  # example: 123456
+  password: ""
+
+  # description: Alist 二次验证密钥,（非6位验证码）
+  # type: string
+  # example: HBVCFGHUYTRESAZXCFGHJKOPLMNHYWRM
+  totp: ""
+
+# tmdb配置项
+tmdb:
+  # description: TMDB API 地址
+  # type: string
+  # example: https://api.themoviedb.org/3
+  api_url: https://api.themoviedb.org/3
+
+  # description: TMDB API Key, See: https://www.themoviedb.org/settings/api
+  # type: string
+  # example: a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5
+  api_key: ""
+
+  # description: 指定TMDb获取信息及重命名语言，遵循 ISO 639-1 标准
+  # type: string
+  # example: en-US
+  language: zh-CN
+
+# amr 配置项
+amr:
+  # description: 是否排除已重命名成功的文件
+  # type: boolean
+  # example: true/false
+  exclude_renamed: true
+
+  # description: 是否使用异步操作进行重命名，由于各网盘的限制方式不同，若出现请求频繁错误请关闭此选项
+  # type: boolean
+  # example: true/false
+  rename_by_async: true
+
+  # description: 是否对父文件夹重命名
+  # type: boolean
+  # example: true/false
+  media_folder_rename: true
+
+  # description: 电影文件重命名格式
+  # type: string
+  # example: "{name}-{year}" 复仇者联盟-2012.mp4
+  # params: {name} - 电影名称
+  # params: {original_name} - 电影原始名称（未翻译名称）
+  # params: {year} - 上映年份
+  # params: {release_date} - 上映日期
+  # params: {language} - 语言
+  # params: {region} - 地区
+  # params: {rating} - 评分（TMDB）
+  movie_name_format: "{name} ({year})" # 复仇者联盟 (2012).mp4
+
+  # description: 剧集文件重命名格式
+  # type: string
+  # example: "{name}-S{season:0>3}E{episode:0>3}.{title}" 刀剑神域-S001E001.剑的世界.mp4
+  # params: {name} - 剧集名称
+  # params: {original_name} - 剧集原始名称（未翻译名称）
+  # params: {year} - 剧集首播年份
+  # params: {first_air_date} - 剧集首播年份
+  # params: {language} - 语言
+  # params: {region} - 地区
+  # params: {rating} - 评分（TMDB）
+  # params: {season} - 剧集季度
+  # 单集参数：
+  # params: {episode} - 单集序号
+  # params: {air_date} - 单集首播日期
+  # params: {episode_rating} - 单集评分（TMDB）
+  # params: {title} - 单集标题
+  tv_name_format: "{name}-S{season:0>2}E{episode:0>2}.{title}" # 刀剑神域-S01E01.剑的世界.mp4
+
+  # description: 剧集文件夹重命名格式，支持参数与电影剧集参数相同
+  # type: string
+  # example: "{name}-{year}" 刀剑神域-2012
+  folder_name_format: "{name} ({year})" # 刀剑神域 (2012)
+
+  # description: 需要识别的视频文件正则表达式
+  # type: string
+  # example: (?i).*\.(flv|mp4|mkv)$
+  video_regex_pattern: (?i).*\.(avi|flv|wmv|mov|mp4|mkv|rm|rmvb)$
+
+  # description: 需要识别的字幕文件正则表达式
+  # type: string
+  # example: (?i).*\.(ass|srt|ssa|sub)$
+  subtitle_regex_pattern: (?i).*\.(ass|srt|ssa|sub)$

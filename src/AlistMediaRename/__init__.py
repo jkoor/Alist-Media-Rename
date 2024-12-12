@@ -1,3 +1,8 @@
+# TODO: 改用httpx库, 以支持原生异步请求
+# TODO: 使用click改写输出信息，将交互操作解构
+# TODO: 加入保存日志功能
+# TODO: 命令行加入父文件夹重命名选项
+
 from typing import Union
 from .api import AlistApi, TMDBApi
 from .config import Config
@@ -15,7 +20,7 @@ class Amr:
 
     """
 
-    def __init__(self, config: Union[Config, dict]):
+    def __init__(self, config: Union[Config, str]):
         """
         初始化参数
         :param config: 配置参数
@@ -62,7 +67,7 @@ class Amr:
         return result_0_alist_login
 
     def tv_rename_id(
-        self, tv_id: str, folder_path: str, folder_password=None, first_number: int = 1
+        self, tv_id: str, folder_path: str, folder_password=None, first_number: str = '1'
     ) -> list[TaskResult]:
         """
         根据TMDB剧集id获取剧集标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为剧集标题.
@@ -70,7 +75,7 @@ class Amr:
         :param tv_id: 剧集id
         :param folder_path: 文件夹路径, 结尾必须加'/', 如/abc/test/
         :param folder_password: 文件夹访问密码
-        :param first_number: 从指定集数开始命名, 如first_name=5, 则从第5集开始按顺序重命名
+        :param first_number: 从集数开始命名, 如first_name=5, 则从第5集开始按顺序重命名
         :return: 重命名请求结果
         """
 
@@ -292,7 +297,7 @@ class Amr:
         keyword: str,
         folder_path: str,
         folder_password=None,
-        first_number: int = 1,
+        first_number: str = '1',
     ) -> list[TaskResult]:
         """
         根据TMDB剧集关键词获取剧集标题,并批量将Alist指定文件夹中的视频文件及字幕文件重命名为剧集标题.
@@ -408,10 +413,10 @@ class Amr:
         )
         # 匹配剧集信息/文件列表
         video_rename_list = Tools.match_episode_files(
-            video_list, [target_name], self.config.amr.exclude_renamed, 1
+            video_list, [target_name], self.config.amr.exclude_renamed, '1'
         )
         subtitle_rename_list = Tools.match_episode_files(
-            subtitle_list, [target_name], self.config.amr.exclude_renamed, 1
+            subtitle_list, [target_name], self.config.amr.exclude_renamed, '1'
         )
         # 获取父文件夹重命名标题
         folder_rename_title = self.config.amr.folder_name_format.format(
