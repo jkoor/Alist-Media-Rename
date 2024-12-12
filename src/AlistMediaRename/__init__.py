@@ -1,3 +1,8 @@
+# TODO: 改用httpx库, 以支持原生异步请求
+# TODO: 使用click改写输出信息，将交互操作解构
+# TODO: 加入保存日志功能
+# TODO: 命令行加入父文件夹重命名选项
+
 from .api import AlistApi, TMDBApi
 from .config import Config
 from .utils import Tools, Tasks, PrintMessage, Debug
