@@ -506,7 +506,7 @@ class PrintMessage:
         print(PrintMessage.ColorStr.yellow("以下字幕文件将会重命名: "))
         for subtitle in subtitle_rename_list:
             print(f"{subtitle['original_name']} -> {subtitle['target_name']}")
-        if renamed_folder_title:
+        if folder_rename:
             print(
                 f"{PrintMessage.ColorStr.yellow('文件夹重命名')}:\n {folder_path.split('/')[-2]} -> {renamed_folder_title}"
             )
@@ -570,11 +570,44 @@ class Tools:
         return natsorted([file for file in file_list if re.match(pattern, file)])
 
     @staticmethod
+    def parse_page_ranges(page_ranges: str, total_pages: int) -> list:
+        """
+        解析分页格式的字符串，并返回一个包含所有项的列表。
+
+        示例:
+        输入: "1,2-4,7,10-13", 11
+        输出: [1, 2, 3, 4, 7, 10, 11]
+
+        输入: "3", 13
+        输出: [3]
+
+        输入: "3-", 13
+        输出: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+        """
+        pages = []
+        ranges = page_ranges.split(",")
+        for r in ranges:
+            if not r:
+                continue
+            if "-" in r:
+                start, end = r.split("-")
+                start = int(start)
+                end = int(end) if end and int(end) <= total_pages else total_pages
+                pages.extend(range(start, end + 1))
+            else:
+                pages.append(int(r))
+
+        # 去重并排序
+        pages = sorted(set(pages))
+        return pages
+
+    @staticmethod
     def match_episode_files(
         original_list: list[str],
         target_list: list[str],
         exclude_renamed: bool,
-        first_number: int = 1,
+        first_number: str = "1",
     ) -> list[dict[str, str]]:
         """匹配文件"""
 
@@ -585,7 +618,7 @@ class Tools:
 
         # 创建hash表和队列
         rename_list: list[dict[str, str]] = [{}] * len(target_list)
-        target_dict = {item: i for i, item in enumerate(target_list)}
+        target_dict: dict[str, int] = {item: i for i, item in enumerate(target_list)}
         queue = []
 
         # 优先匹配已重命名的文件
@@ -602,7 +635,11 @@ class Tools:
         for i in range(len(target_list)):
             if rename_list[i] != {}:
                 rename_list_no_filter.append(rename_list[i])
-            if rename_list[i] == {} and len(queue) > 0 and i >= first_number - 1:
+            if (
+                rename_list[i] == {}
+                and len(queue) > 0
+                and i + 1 in Tools.parse_page_ranges(first_number, len(target_list))
+            ):
                 original_name: str = queue.pop(0)
                 target_name = target_list[i] + "." + original_name.rsplit(".", 1)[1]
                 rename_list_no_filter.append(

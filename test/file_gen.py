@@ -27,5 +27,5 @@ def delete_files(folder_path):
 if __name__ == "__main__":
     number = 12
     index = 1
-    generate_random_files("./debug/files/", number, index, "test", ".mp4")
-    generate_random_files("./debug/files/", number, index, "test", ".ass")
+    generate_random_files("./test/files/", number, index, "test", ".mp4")
+    generate_random_files("./test/files/", number, index, "test", ".ass")
