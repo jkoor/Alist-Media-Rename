@@ -47,7 +47,9 @@ class Config:
         self.settings.alist.totp = input(
             "请输入二次验证密钥(base64加密密钥,非6位数字验证码), 未设置请[回车]跳过\n"
         )
-        self.settings.tmdb.api_key = input("请输入TMDB API密钥，用于从TMDB获取剧集/电影信息\n申请链接: https://www.themoviedb.org/settings/api\n")
+        self.settings.tmdb.api_key = input(
+            "请输入TMDB API密钥，用于从TMDB获取剧集/电影信息\n申请链接: https://www.themoviedb.org/settings/api\n"
+        )
 
     def save(self, filepath: str, output: bool = True):
         """保存配置"""

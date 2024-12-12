@@ -1,5 +1,6 @@
 from typing import Any, Callable
 from pydantic import BaseModel
+from typing import Union
 
 
 class AlistConfig(BaseModel):
@@ -99,7 +100,7 @@ class Task(BaseModel):
     # 任务函数
     func: Callable
     # 任务参数
-    args: list | tuple
+    args: Union[list, tuple]
 
 
 class TaskResult(BaseModel):

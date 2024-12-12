@@ -1,3 +1,4 @@
+from typing import Union
 from AlistMediaRename import Amr
 from importlib.metadata import version
 import click
@@ -38,7 +39,7 @@ import click
 def start(
     config: str,
     dir: str,
-    folder: bool | None,
+    folder: Union[bool, None],
     id: bool,
     keyword: str,
     movie: bool,

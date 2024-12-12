@@ -2,7 +2,7 @@ import asyncio
 from functools import wraps
 import re
 import sys
-from typing import Any
+from typing import Any, Union
 from natsort import natsorted
 import colorama
 from .models import Task, TaskResult
@@ -494,7 +494,7 @@ class PrintMessage:
         video_rename_list: list[dict[str, str]],
         subtitle_rename_list: list[dict[str, str]],
         folder_rename: bool,
-        renamed_folder_title: str | None,
+        renamed_folder_title: Union[str, None],
         folder_path: str,
     ):
         """打印重命名信息"""
@@ -653,7 +653,7 @@ class Tools:
 
     @staticmethod
     def get_argument(
-        arg_index: int, kwarg_name: str, args: list | tuple, kwargs: dict
+        arg_index: int, kwarg_name: str, args: Union[list, tuple], kwargs: dict
     ) -> str:
         """获取参数"""
         if len(args) > arg_index:

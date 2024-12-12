@@ -6,4 +6,3 @@ venv
 uv.lock
 .env
 /test/files
-test/debug.py
