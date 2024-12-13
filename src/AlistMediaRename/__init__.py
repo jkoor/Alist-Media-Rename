@@ -1,7 +1,6 @@
 # TODO: 改用httpx库, 以支持原生异步请求
-# TODO: 使用click改写输出信息，将交互操作解构
+# TODO: 使用rich改写输出信息，使用click改写输入信息，将交互操作解构
 # TODO: 加入保存日志功能
-# TODO: 命令行加入父文件夹重命名选项
 
 from typing import Union
 from .api import AlistApi, TMDBApi
