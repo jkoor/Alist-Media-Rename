@@ -25,7 +25,7 @@ import click
     "-n",
     "--number",
     type=str,
-    default="1",
+    default="1-",
     # show_default=True,
     help="指定剧集编号开始重命名(可选)",
 )

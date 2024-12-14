@@ -37,9 +37,20 @@ pip install --upgrade AlistMediaRename
 # 请确保已安装 pipx
 # pipx 可以隔离安装，不对全局 Python 造成污染
 # 使用 pipx 安装
-pipx install git+https://github.com/jkoor/Alist-Media-Rename.git
+pipx install AlistMediaRename
 # 使用 pipx 更新
 pipx upgrade AlistMediaRename
+```
+
+**使用`uv`安装**
+
+```shell
+# 请确保已安装 uv
+# uv 可以隔离安装，不对全局 Python 造成污染
+# 使用 pipx 安装
+uv tool install AlistMediaRename
+# 使用 pipx 更新
+uv tool upgrade AlistMediaRename
 ```
 
 **本地运行**
@@ -109,6 +120,7 @@ TMDb 的剧集/电影 id 为对应网址中的数字，如剧集[《刀剑神域
 文件重命名前后对比：*1.mp4 -> 刀剑神域-S01E01.剑的世界.mp4*
 
 ```shell
+
 # 通过关键字获取剧集信息，并重命名文件
 amr 刀剑神域 -d /阿里云盘/动漫/SAO
 
