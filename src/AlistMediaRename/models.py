@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Callable, Any
 from pydantic import BaseModel
 from typing import Union
 
@@ -20,6 +20,7 @@ class AlistConfig(BaseModel):
 
 class TmdbConfig(BaseModel):
     """Tmdb配置参数"""
+
     # TMDB Api Url
     api_url: str = "https://api.themoviedb.org/3"
     # TMDB Api Key(V3)
@@ -92,6 +93,13 @@ class Formated_Variables:
         title: str  # 单集标题
 
 
+class ApiResponseModel(BaseModel):
+    success: bool
+    status_code: int
+    error: str
+    data: Any
+
+
 class Task(BaseModel):
     """任务"""
 
@@ -113,6 +121,6 @@ class TaskResult(BaseModel):
     # 任务结果
     success: bool
     # 返回数据
-    data: Any
+    data: ApiResponseModel
     # 任务异常
     error: str

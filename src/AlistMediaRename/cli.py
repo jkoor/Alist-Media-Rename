@@ -61,7 +61,6 @@ def start(
     :param password: 文件访问密码
     """
     amr = Amr(config)
-
     if folder is not None:
         amr.config.settings.amr.media_folder_rename = folder
 

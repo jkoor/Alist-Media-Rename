@@ -4,8 +4,12 @@ import re
 import sys
 from typing import Any, Union
 from natsort import natsorted
-import colorama
-from .models import Task, TaskResult
+from rich import box
+from rich import print as rprint
+from rich.prompt import Prompt, Confirm
+from rich.table import Table
+from rich.text import Text
+from .models import ApiResponseModel, Task, TaskResult
 
 
 class Debug:
@@ -39,7 +43,9 @@ class Debug:
                     func_name=func.__qualname__,
                     args=list(args, **kwargs),
                     success=False,
-                    data="",
+                    data=ApiResponseModel(
+                        success=False, status_code=500, error="", data={}
+                    ),
                     error=str(e),
                 )
 
@@ -50,34 +56,90 @@ class Debug:
         """在错误时停止"""
         for result in result_list:
             if not result.success:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 任务执行失败, 退出程序\n出错任务: {result.func_name}\n任务参数{result.args}\n错误信息: {result.error}\n"
-                )
+                Message.error("任务执行失败, 退出程序")
+                rprint(result)
                 sys.exit(0)
 
 
-class PrintMessage:
+class Message:
     """打印消息类"""
 
-    class ColorStr:
-        """
-        彩色字符串
-        """
+    @staticmethod
+    def config_input():
+        url = Prompt.ask(
+            Message.question("请输入Alist地址"), default="http://127.0.0.1:5244"
+        )
+        user = Prompt.ask(Message.question("请输入账号"))
+        password = Prompt.ask(Message.question("请输入登录密码"))
+        totp = Prompt.ask(
+            Message.question(
+                "请输入二次验证密钥(base64加密密钥,非6位数字验证码), 未设置请跳过"
+            ),
+            default="",
+        )
+        api_key = Prompt.ask(
+            Message.question(
+                "请输入TMDB API密钥，用于从TMDB获取剧集/电影信息\t申请链接: https://www.themoviedb.org/settings/api\n"
+            )
+        )
+        return {
+            "url": url,
+            "user": user,
+            "password": password,
+            "totp": totp,
+            "api_key": api_key,
+        }
 
-        @staticmethod
-        def red(string: str) -> str:
-            """红色字符串"""
-            return colorama.Fore.RED + string + colorama.Fore.RESET
+    @staticmethod
+    def success(message: str, printf: bool = True):
+        if printf:
+            rprint(f":white_check_mark: {message}")
+        return f":white_check_mark: {message}"
 
-        @staticmethod
-        def green(string: str) -> str:
-            """绿色字符串"""
-            return colorama.Fore.GREEN + string + colorama.Fore.RESET
+    @staticmethod
+    def error(message: str, printf: bool = True):
+        if printf:
+            rprint(f":x: {message}")
+        return f":x: {message}"
 
-        @staticmethod
-        def yellow(string: str) -> str:
-            """黄色字符串"""
-            return colorama.Fore.YELLOW + string + colorama.Fore.RESET
+    @staticmethod
+    def warning(message: str, printf: bool = True):
+        if printf:
+            rprint(f":warning:  {message}")
+        return f":warning:  {message}"
+
+    @staticmethod
+    def ask(message: str, printf: bool = True):
+        if printf:
+            rprint(f":bell: {message}")
+        return f":bell: {message}"
+
+    @staticmethod
+    def info(message: str, printf: bool = True):
+        if printf:
+            rprint(f":information:  {message}")
+        return f":information:  {message}"
+
+    @staticmethod
+    def congratulation(message: str, printf: bool = True):
+        if printf:
+            rprint(f":party_popper: {message}")
+        return f":party_popper: {message}"
+
+    @staticmethod
+    def question(message: str, printf: bool = True):
+        if printf:
+            rprint(f":abc: {message}")
+        return f":abc: {message}"
+
+    @staticmethod
+    def text_regex(text: str):
+        t = Text(text)
+        # t.highlight_regex(r"\d(.*).", "cyan")
+        # t.highlight_regex(r"^[^-]+", "blue")
+        t.highlight_regex(r"(?<=E)\d+(?=.)", "bright_cyan")
+        # t.highlight_regex(r"[^.]+(?=\.\w+$)", "magenta")
+        return t
 
     @staticmethod
     def alist_login_required(func):
@@ -91,7 +153,9 @@ class PrintMessage:
 
             # 判断登录状态
             if self.login_success is False:
+                Message.error("操作失败，用户未登录")
                 # print(f"{PrintMessage.ColorStr.red('[Alist●Login●Failure]\n')}操作失败，用户未登录")
+                # console.print("[blue underline]Looks like a link")
                 return {"message": "用户未登录"}
             login_result = func(self, *args, **kwargs)
 
@@ -107,15 +171,14 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            login_result = func(self, *args, **kwargs)
+            login_result: ApiResponseModel = func(self, *args, **kwargs)
 
             # 输出获取Token结果
-            if login_result["message"] != "success":
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 登录失败\t{login_result['message']}"
-                )
+            if login_result.success:
+                Message.success(f"主页: {self.url}")
             else:
-                print(f"{PrintMessage.ColorStr.green('[✓]')} 主页: {self.url}")
+                Message.error(f"登录失败\t{login_result.data['message']}")
+                sys.exit(0)
             return login_result
 
         return wrapper
@@ -126,12 +189,12 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
-            # 输出重命名结果
-            if return_data["code"] != 200:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n{return_data['message']}"
+            # 输出结果
+            if not return_data.success:
+                Message.error(
+                    f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.data['message']}"
                 )
                 sys.exit(0)
 
@@ -149,14 +212,20 @@ class PrintMessage:
             return_data = func(*args, **kwargs)
 
             # 输出重命名结果
-            if return_data["message"] != "success":
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 重命名失败: {Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}\n{return_data['message']}"
-                )
-            else:
-                print(
-                    f"{PrintMessage.ColorStr.green('[✓]')} 重命名路径:{Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}"
-                )
+            # if return_data["message"] != "success":
+            #     # print(
+            #     #     f"{Message.ColorStr.red('[✗]')} 重命名失败: {Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}\n{return_data['message']}"
+            #     # )
+            #     Message.error(
+            #         f"重命名失败: {Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}\n{return_data['message']}"
+            #     )
+            # else:
+            #     # print(
+            #     #     f"{Message.ColorStr.green('[✓]')} 重命名路径:{Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}"
+            #     # )
+            #     Message.success(
+            #         f"重命名路径:{Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}"
+            #     )
 
             # 返回请求结果
             return return_data
@@ -169,16 +238,16 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
-            # 输出重命名结果
-            if return_data["message"] != "success":
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n{return_data['message']}"
+            # 输出移动结果
+            if not return_data.success:
+                Message.error(
+                    f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n   {return_data.data['message']}"
                 )
             else:
-                print(
-                    f"{PrintMessage.ColorStr.green('[✓]')} 移动路径: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n"
+                Message.success(
+                    f"移动路径: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}"
                 )
 
             # 返回请求结果
@@ -192,20 +261,16 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 输出新建文件夹请求结果
-            if return_data["message"] != "success":
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}\n{return_data['message']}"
+            if not return_data.success:
+                Message.error(
+                    f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.data['message']}"
                 )
             else:
-                print(
-                    f"{PrintMessage.ColorStr.green('[✓]')} 文件夹创建路径: {Tools.get_argument(1, 'path', args, kwargs)}"
+                Message.success(
+                    f"文件夹创建路径: {Tools.get_argument(1, 'path', args, kwargs)}"
                 )
 
             # 返回请求结果
@@ -219,87 +284,25 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 如果未启用调试模式，直接返回结果
             if not Debug.output_enabled:
                 return return_data
 
             # 输出删除文件/文件夹请求结果
-            if return_data["message"] != "success":
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 删除失败: {Tools.get_argument(1, 'path', args, kwargs)}\n{return_data['message']}\n{return_data['message']}"
+            if not return_data.success:
+                Message.error(
+                    f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.data['message']}\n{return_data.data['message']}"
                 )
             else:
                 for name in Tools.get_argument(2, "name", args, kwargs):
-                    print(
-                        f"{PrintMessage.ColorStr.green('[✓]')} 删除路径: {Tools.get_argument(1, 'path', args, kwargs)}/{name}"
+                    # print(
+                    #     f"{Message.ColorStr.green('[✓]')} 删除路径: {Tools.get_argument(1, 'path', args, kwargs)}/{name}"
+                    # )
+                    Message.success(
+                        f"删除路径: {Tools.get_argument(1, 'path', args, kwargs)}/{name}"
                     )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_download_link(func):
-        """输出文件下载链接信息"""
-
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            return_data = func(self, *args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
-
-            # 输出获取下载信息请求结果
-            if return_data["message"] == "success":
-                file = return_data["data"]
-                print(
-                    f"\n{PrintMessage.ColorStr.green('[✓]')} 获取文件链接路径: {Tools.get_argument(1, 'path', args, kwargs)}"
-                )
-                print(
-                    f"名称: {file['name']}\n来源: {file['provider']}\n直链: {self.url}/d{Tools.get_argument(1, 'path', args, kwargs)}\n源链: {file['raw_url']}"
-                )
-            else:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 获取文件链接失败: {Tools.get_argument(1, 'path', args, kwargs)}\n{return_data['message']}"
-                )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_disk_list(func):
-        """输出已添加存储列表"""
-
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            return_data = func(self, *args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
-
-            # 输出已添加存储列表请求结果
-            if return_data["message"] == "success":
-                disks = return_data["data"]["content"]
-                print(
-                    f"{PrintMessage.ColorStr.green('[✓]')} 存储列表总数: {return_data['data']['total']}"
-                )
-                print(f"{'驱 动':<14}{'状    态':^18}{'挂载路径'}")
-                print(f"{'--------':<16}{'--------':^20}{'--------'}")
-                for disk in disks:
-                    print(
-                        f"{disk['driver']:<16}{disk['status']:^20}{disk['mount_path']}"
-                    )
-            else:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 获取存储驱动失败\n{return_data['message']}"
-                )
 
             # 返回请求结果
             return return_data
@@ -312,32 +315,35 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 请求失败则输出失败信息
-            if "success" in return_data and return_data["success"] is False:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\n{return_data['status_message']}"
+            if not return_data.success:
+                Message.error(
+                    f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\n   {return_data.data['status_message']}"
                 )
                 return return_data
 
             # 格式化输出请求结果
-            first_air_year = return_data["first_air_date"][:4]
-            name = return_data["name"]
+            first_air_year = return_data.data["first_air_date"][:4]
+            name = return_data.data["name"]
             dir_name = f"{name} ({first_air_year})"
-            print(f"{PrintMessage.ColorStr.green('[✓]')} {dir_name}")
-            seasons = return_data["seasons"]
-            print(f"{' 开播时间 ':<10}{'集 数':^8}{'序 号':^10}{'剧 名'}")
-            print(f"{'----------':<12}{'----':^12}{'-----':^12}{'----------------'}")
+            Message.success(dir_name)
+            seasons = return_data.data["seasons"]
+            table = Table(box=box.SIMPLE)
+            table.add_column("开播时间", justify="center", style="cyan")
+            table.add_column("集数", justify="center", style="magenta")
+            table.add_column("序号", justify="center", style="green")
+            table.add_column("剧名", justify="left", no_wrap=True)
+            # table.add_column(footer="共计: " + str(len(seasons)), style="grey53")
             for i, season in enumerate(seasons):
-                print(
-                    f"{str(season['air_date']):<12}{season['episode_count']:^12}{i:^12}{season['name']}"
+                table.add_row(
+                    season["air_date"],
+                    str(season["episode_count"]),
+                    str(i),
+                    season["name"],
                 )
-            print("")
+            rprint(table)
 
             # 返回请求结果
             return return_data
@@ -350,29 +356,31 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 请求失败则输出失败信息
-            if "success" in return_data and return_data["success"] is False:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data['status_message']}"
+            if not return_data.success:
+                Message.error(
+                    f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.data['status_message']}"
                 )
                 return return_data
-            if not return_data["results"]:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n    未查找到相关剧集"
+            if not return_data.data["results"]:
+                Message.error(
+                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n    未查找到相关剧集"
                 )
                 return return_data
 
-            # 格式化输出请求结果
-            print(
-                f"{PrintMessage.ColorStr.green('[✓]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}"
-            )
-            print(f"{' 开播时间 ':<8}{'序 号':^14}{'剧 名'}")
-            print(f"{'----------':<12}{'-----':^16}{'----------------'}")
-            for i, result in enumerate(return_data["results"]):
-                print(f"{result['first_air_date']:<12}{i:^16}{result['name']}")
-            print("")
+            Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
+            table = Table(box=box.SIMPLE)
+            table.add_column("开播时间", justify="center", style="cyan")
+            table.add_column("序号", justify="center", style="green")
+            table.add_column("剧名", justify="left", no_wrap=True)
+            # table.add_column(
+            #     footer="共计: " + str(len(return_data["results"])), style="grey53"
+            # )
+            for i, r in enumerate(return_data.data["results"]):
+                table.add_row(r["first_air_date"], str(i), r["name"])
+            rprint(table)
 
             # 返回请求结果
             return return_data
@@ -385,33 +393,29 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 请求失败则输出失败信息
-            if "success" in return_data and return_data["success"] is False:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n{return_data['status_message']}"
+            if not return_data.success:
+                Message.error(
+                    f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n   {return_data.data['status_message']}"
                 )
                 return return_data
 
             return return_data
 
-            # 格式化输出请求结果
-            print(f"{PrintMessage.ColorStr.green('[✓]')} {return_data['name']}")
-            print(f"{'序 号':<6}{'放映日期':<12}{'时 长':<10}{'标 题'}")
-            print(f"{'----':<8}{'----------':<16}{'-----':<12}{'----------------'}")
+            # # 格式化输出请求结果
+            # print(f"{Message.ColorStr.green('[✓]')} {return_data['name']}")
+            # print(f"{'序 号':<6}{'放映日期':<12}{'时 长':<10}{'标 题'}")
+            # print(f"{'----':<8}{'----------':<16}{'-----':<12}{'----------------'}")
 
-            for episode in return_data["episodes"]:
-                print(
-                    f"{episode['episode_number']:<8}{episode['air_date']:<16}{str(episode['runtime']) + 'min':<12}{episode['name']}"
-                )
+            # for episode in return_data["episodes"]:
+            #     print(
+            #         f"{episode['episode_number']:<8}{episode['air_date']:<16}{str(episode['runtime']) + 'min':<12}{episode['name']}"
+            #     )
 
-            # 返回请求结果
-            return return_data
+            # # 返回请求结果
+            # return return_data
 
         return wrapper
 
@@ -421,25 +425,30 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 如果未启用调试模式，直接返回结果
             if not Debug.output_enabled:
                 return return_data
 
             # 请求失败则输出失败信息
-            if "success" in return_data and return_data["success"] is False:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}\n{return_data['status_message']}"
+            if not return_data.success:
+                Message.error(
+                    f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}\n   {return_data.data['status_message']}"
                 )
                 return return_data
 
             # 格式化输出请求结果
-            print(
-                f"{PrintMessage.ColorStr.green('[✓]')} {return_data['title']} {return_data['release_date']}"
+            Message.success(
+                f"{return_data.data['title']} {return_data.data['release_date']}"
             )
-            print(f"[标语] {return_data['tagline']}")
-            print(f"[剧集简介] {return_data['overview']}")
+            # print(
+            #     f"{Message.ColorStr.green('[✓]')} {return_data['title']} {return_data['release_date']}"
+            # )
+
+            rprint(f"[标语] {return_data.data['tagline']}")
+
+            rprint(f"[剧集简介] {return_data.data['overview']}")
 
             # 返回请求结果
             return return_data
@@ -452,37 +461,55 @@ class PrintMessage:
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
+            return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 如果未启用调试模式，直接返回结果
             if not Debug.output_enabled:
                 return return_data
 
             # 请求失败则输出失败信息
-            if "success" in return_data and return_data["success"] is False:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data['status_message']}"
+            if not return_data.success:
+                # print(
+                #     f"{Message.ColorStr.red('[✗]')} Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data['status_message']}"
+                # )
+                Message.error(
+                    f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data.data['status_message']}"
                 )
                 return return_data
 
-            if not return_data["results"]:
-                print(
-                    f"{PrintMessage.ColorStr.red('[✗]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n查找不到任何相关电影"
+            if not return_data.data["results"]:
+                # print(
+                #     f"{Message.ColorStr.red('[✗]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n查找不到任何相关电影"
+                # )
+                Message.error(
+                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n查找不到任何相关电影"
                 )
                 return return_data
 
             # 格式化输出请求结果
-            print(
-                f"{PrintMessage.ColorStr.green('[✓]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}"
-            )
-            print(f"{' 首播时间 ':<8}{'序号':^14}{'电影标题'}")
-            print(f"{'----------':<12}{'-----':^16}{'----------------'}")
+            # print(
+            #     f"{Message.ColorStr.green('[✓]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}"
+            # )
+            Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
+            # print(f"{' 首播时间 ':<8}{'序号':^14}{'电影标题'}")
+            # print(f"{'----------':<12}{'-----':^16}{'----------------'}")
 
-            for i, result in enumerate(return_data["results"]):
-                if "release_date" in result:
-                    print(f"{result['release_date']:<12}{i:^16}{result['title']}")
-                else:
-                    print(f"{'xxxx-xx-xx':<12}{i:^16}{result['title']}")
+            # for i, result in enumerate(return_data["results"]):
+            #     if "release_date" in result:
+            #         print(f"{result['release_date']:<12}{i:^16}{result['title']}")
+            #     else:
+            #         print(f"{'xxxx-xx-xx':<12}{i:^16}{result['title']}")
+
+            table = Table(box=box.SIMPLE)
+            table.add_column("首播时间", justify="center", style="cyan")
+            table.add_column("序号", justify="center", style="green")
+            table.add_column("电影标题", justify="left", no_wrap=True)
+            # table.add_column(
+            #     footer="共计: " + str(len(return_data["results"])), style="grey53"
+            # )
+            for i, r in enumerate(return_data.data["results"]):
+                table.add_row(r["release_date"], str(i), r["title"])
+            rprint(table)
 
             # 返回请求结果
             return return_data
@@ -498,32 +525,49 @@ class PrintMessage:
         folder_path: str,
     ):
         """打印重命名信息"""
-        # print("以下视频文件将会重命名: ")
-        print(PrintMessage.ColorStr.yellow("以下视频文件将会重命名: "))
-        for video in video_rename_list:
-            print(f"{video['original_name']} -> {video['target_name']}")
-        # print("以下字幕文件将会重命名: ")
-        print(PrintMessage.ColorStr.yellow("以下字幕文件将会重命名: "))
-        for subtitle in subtitle_rename_list:
-            print(f"{subtitle['original_name']} -> {subtitle['target_name']}")
+        if len(video_rename_list) > 0:
+            Message.info(f"以下视频文件将会重命名: 共计 {len(subtitle_rename_list)}")
+            table = Table(box=box.SIMPLE)
+            table.add_column("原文件名", justify="left", style="grey53", no_wrap=True)
+            table.add_column(" ", justify="left", style="grey70")
+            table.add_column("目标文件名", justify="left", no_wrap=True)
+            for video in video_rename_list:
+                table.add_row(
+                    Message.text_regex(video["original_name"]),
+                    "->",
+                    Message.text_regex(video["target_name"]),
+                )
+            rprint(table)
+        if len(subtitle_rename_list) > 0:
+            Message.info(f"以下字幕文件将会重命名: 共计 {len(subtitle_rename_list)}")
+            table = Table(box=box.SIMPLE)
+            table.add_column("原文件名", justify="left", style="grey53", no_wrap=True)
+            table.add_column(" ", justify="left", style="grey70")
+            table.add_column("目标文件名", justify="left", no_wrap=True)
+            for subtitle in subtitle_rename_list:
+                table.add_row(
+                    Message.text_regex(subtitle["original_name"]),
+                    "->",
+                    Message.text_regex(subtitle["target_name"]),
+                )
+            rprint(table)
         if folder_rename:
-            print(
-                f"{PrintMessage.ColorStr.yellow('文件夹重命名')}:\n {folder_path.split('/')[-2]} -> {renamed_folder_title}"
+            Message.info(
+                f"文件夹重命名: [grey53]{folder_path.split('/')[-2]}[/grey53] [grey70]->[/grey70] {renamed_folder_title}"
             )
 
     @staticmethod
     def require_confirmation() -> bool:
         """确认操作"""
-        print("")
-        while True:
-            signal = input(
-                f"确定要重命名吗? {PrintMessage.ColorStr.green('[回车]')}确定, {PrintMessage.ColorStr.red('[n]')}取消\t"
-            )
-            if signal.lower() == "":
-                return True
-            if signal.lower() == "n":
-                sys.exit(0)
-            continue
+
+        signal = Confirm.ask(
+            Message.warning("确定要重命名吗? ", printf=False), default=True
+        )
+
+        if signal:
+            return True
+        else:
+            sys.exit(0)
 
     @staticmethod
     def select_number(result_list: list[Any]) -> int:
@@ -534,13 +578,87 @@ class PrintMessage:
         else:
             while True:
                 # 获取到多项匹配结果，手动选择
-                number = input(
-                    f"查询到以上结果，请输入对应{PrintMessage.ColorStr.green('[序号]')}, 输入{PrintMessage.ColorStr.red('[n]')}退出\t"
-                )
+                number = Prompt.ask(
+                    Message.ask(
+                        "查询到以上结果，请输入对应[green][序号][/green], 输入[red]\[n][/red]退出",  # type: ignore
+                        printf=False,
+                    )
+                )  # type: ignore
                 if number.lower() == "n":
                     sys.exit(0)
                 if number.isdigit() and 0 <= int(number) < len(result_list):
                     return int(number)
+
+    @staticmethod
+    def print_rename_result(
+        tasks: list[TaskResult],
+        video_count: int,
+        subtitle_count: int,
+        folder_count: int,
+    ):
+        """打印重命名结果"""
+
+        video_error_count = 0
+        subtitle_error_count = 0
+        folder_error_count = 0
+        error_list: list[TaskResult] = []
+
+        # 统计视频重命名结果
+        for i in range(video_count):
+            if not tasks[i].data.success:
+                video_error_count += 1
+                error_list.append(tasks[i])
+
+        # 统计字幕重命名结果
+        for i in range(video_count, video_count + subtitle_count):
+            if not tasks[i].data.success:
+                subtitle_error_count += 1
+                error_list.append(tasks[i])
+
+        # 统计文件夹重命名结果
+        if not tasks[-1].data.success:
+            folder_error_count += 1
+            error_list.append(tasks[-1])
+
+        # 输出错误信息
+        if video_error_count + subtitle_error_count + folder_error_count > 0:
+            table = Table(box=box.SIMPLE, title="重命名失败列表")
+            table.add_column("原文件名", justify="left", style="grey53")
+            table.add_column(" ", justify="left", style="grey70")
+            table.add_column("目标文件名", justify="left")
+            table.add_column("错误信息", justify="left")
+            for result in error_list:
+                table.add_row(
+                    result.args[1].split("/")[-1],
+                    "->",
+                    Message.text_regex(result.args[0]),
+                    result.data.error,
+                )
+            rprint(table)
+
+        # 输出重命名结果，成功失败数量
+        if video_error_count > 0 and video_count > 0:
+            Message.error(
+                f"视频文件:  成功 [green]{video_count - video_error_count}[/green], 失败 [red]{video_error_count}[/red]"
+            )
+        elif video_error_count == 0 and video_count > 0:
+            Message.success(f"视频文件: 成功 [green]{video_count}[/green]")
+        if subtitle_error_count > 0 and subtitle_count > 0:
+            Message.error(
+                f"字幕文件: 成功 [green]{subtitle_count - subtitle_error_count}[/green], 失败 [red]{subtitle_error_count}[/red]"
+            )
+        elif subtitle_error_count == 0 and subtitle_count > 0:
+            Message.success(f"字幕文件: 成功 [green]{subtitle_count}[/green]")
+        if folder_error_count > 0 and folder_count > 0:
+            Message.error(
+                f"父文件夹: 成功 [green]{folder_count - folder_error_count}[/green], 失败 [red]{folder_error_count}[/red]"
+            )
+        elif folder_error_count == 0 and folder_count > 0:
+            Message.success(f"父文件夹: 成功 [green]{folder_count}[/green]")
+
+        # 程序运行结束
+        rprint("\n")
+        Message.congratulation("重命名完成")
 
 
 class Tools:

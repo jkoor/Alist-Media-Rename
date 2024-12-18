@@ -1,8 +1,66 @@
 import pyotp
 import requests
-from .utils import PrintMessage
+from functools import wraps
+from .models import ApiResponseModel
+from .utils import Message
 
-# from requests_toolbelt import MultipartEncoder
+
+# 封装接口返回信息
+class ApiResponse:
+    """
+    封装接口返回信息
+    """
+
+    @staticmethod
+    def alist_api_response(func):
+        """
+        封装Alist api返回信息.
+        """
+
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
+            rawdata = func(*args, **kwargs)
+
+            if rawdata["message"] == "success":
+                return ApiResponseModel(
+                    success=True,
+                    status_code=rawdata["code"],
+                    error="",
+                    data=rawdata["data"],
+                )
+            else:
+                return ApiResponseModel(
+                    success=False,
+                    status_code=rawdata["code"],
+                    error=rawdata["message"],
+                    data=rawdata["data"],
+                )
+
+        return wrapper
+
+    @staticmethod
+    def tmdb_api_response(func):
+        """
+        封装TMDB api返回信息装饰器.
+        """
+
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
+            rawdata, status_code = func(*args, **kwargs)
+
+            if status_code == 200:
+                return ApiResponseModel(
+                    success=True, status_code=status_code, error="", data=rawdata
+                )
+            else:
+                return ApiResponseModel(
+                    success=False,
+                    status_code=status_code,
+                    error=rawdata.get("status_message", ""),
+                    data=rawdata,
+                )
+
+        return wrapper
 
 
 class AlistApi:
@@ -33,7 +91,8 @@ class AlistApi:
         self.timeout = 10
         self.silence = False
 
-    @PrintMessage.output_alist_login
+    @Message.output_alist_login
+    @ApiResponse.alist_api_response
     def login(self) -> dict:
         """
         获取登录Token
@@ -60,7 +119,8 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    @PrintMessage.output_alist_file_list
+    @Message.output_alist_file_list
+    @ApiResponse.alist_api_response
     def file_list(
         self,
         path: str = "/",
@@ -97,7 +157,8 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_rename
+    # @Message.output_alist_rename
+    @ApiResponse.alist_api_response
     def rename(self, name: str, path: str) -> dict:
         """
         重命名文件/文件夹.
@@ -118,7 +179,8 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_move
+    @Message.output_alist_move
+    @ApiResponse.alist_api_response
     def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
         """
         移动文件/文件夹.
@@ -138,7 +200,8 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_mkdir
+    @Message.output_alist_mkdir
+    @ApiResponse.alist_api_response
     def mkdir(self, path: str) -> dict:
         """
         新建文件夹.
@@ -156,7 +219,8 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_remove
+    @Message.output_alist_remove
+    @ApiResponse.alist_api_response
     def remove(self, path: str, names: list) -> dict:
         """
         删除文件/文件夹.
@@ -174,87 +238,6 @@ class AlistApi:
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
 
-        # 获取请求结果
-        return r.json()
-
-    @PrintMessage.output_alist_download_link
-    def download_link(self, path: str, password=None) -> dict:
-        """
-        获取文件下载链接.
-
-        :param path: 文件路径
-        :param password: 文件访问密码
-        :return: 获取文件下载链接请求结果
-        """
-        # 发送请求
-        post_url = self.url + "/api/fs/get"
-        post_headers = {"Authorization": self.token}
-        post_json = {"path": path, "password": password}
-        r = requests.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
-        # 获取请求结果
-        return r.json()
-
-    def upload(self, path: str, file: str) -> dict:
-        """
-        上传文件.
-
-        :param path: 上传路径(包含文件) 如/abc/test.txt
-        :param file: 源文件路径(包含文件) 如/abc/test.txt
-        :return: 返回上传文件请求结果
-        """
-
-        print(
-            "由于上传文件需要调用第三方库：requests_toolbelt, "
-            "而主程序又用不到上传操作, 所以该函数代码被注释掉了, "
-            "如有需要请取消代码注释, 并把最上方调用代码取消注释!"
-        )
-        #     # 发送请求
-        #     post_url = self.url + '/api/fs/put'
-        #     upload_file = open(file, "rb")
-        #     # post_data = MultipartEncoder({upload_file.name: upload_file})
-        #     post_data = MultipartEncoder({upload_file.name: upload_file})
-        #     post_headers = {
-        #         'Authorization': self.token,
-        #         'File-path': parse.quote(path),
-        #         'Content-Type': post_data.content_type
-        #     }
-        #     r = requests.put(url=post_url, headers=post_headers, data=post_data)
-        #     # 获取请求结果
-        #     return_data = r.json()
-        #
-        #     # 静默返回请求结果,不输出内容
-        #     if silent:
-        #         return return_data
-
-        # 输出内容提醒颜色
-        # failure_msg = colorama.Fore.RED + '\n[Upload●Failure]' + colorama.Fore.RESET
-        # success_msg = colorama.Fore.GREEN + '\n[Upload●Success]' + colorama.Fore.RESET
-
-        #     # 输出上传文件请求结果
-        #     if return_data['message'] == 'success':
-        #         print(f"{success_msg} 上传路径: {path}\t本地路径: {file}")
-        #     else:
-        #         print(f"{failure_msg} 上传失败: {path}\t本地路径: {file}\n{return_data['message']}")
-        #
-        #     # 返回请求结果
-        #     return return_data
-
-        return {"注意": "查看输出内容"}
-
-    @PrintMessage.output_alist_disk_list
-    def disk_list(self) -> dict:
-        """
-        获取已添加存储列表.
-
-        :return: 获取已添加存储列表请求结果
-        """
-
-        # 发送请求
-        post_url = self.url + "/api/admin/storage/list"
-        post_headers = {"Authorization": self.token}
-        r = requests.get(url=post_url, headers=post_headers, timeout=self.timeout)
         # 获取请求结果
         return r.json()
 
@@ -276,8 +259,9 @@ class TMDBApi:
         self.api_key = api_key
         self.timeout = 10
 
-    @PrintMessage.output_tmdb_tv_info
-    def tv_info(self, tv_id: str, language: str = "zh-CN") -> dict:
+    @Message.output_tmdb_tv_info
+    @ApiResponse.tmdb_api_response
+    def tv_info(self, tv_id: str, language: str = "zh-CN") -> tuple:
         """
         根据提供的id获取剧集信息.
 
@@ -291,10 +275,11 @@ class TMDBApi:
         post_params = {"api_key": self.api_key, "language": language}
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_search_tv
-    def search_tv(self, keyword: str, language: str = "zh-CN") -> dict:
+    @Message.output_tmdb_search_tv
+    @ApiResponse.tmdb_api_response
+    def search_tv(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
         根据关键字匹配剧集, 获取相关信息.
 
@@ -309,12 +294,13 @@ class TMDBApi:
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_tv_season_info
+    @Message.output_tmdb_tv_season_info
+    @ApiResponse.tmdb_api_response
     def tv_season_info(
         self, tv_id: str, season_number: int, language: str = "zh-CN"
-    ) -> dict:
+    ) -> tuple:
         """
         获取指定季度剧集信息.
         :param tv_id: 剧集id
@@ -329,10 +315,11 @@ class TMDBApi:
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_movie_info
-    def movie_info(self, movie_id: str, language: str = "zh-CN") -> dict:
+    @Message.output_tmdb_movie_info
+    @ApiResponse.tmdb_api_response
+    def movie_info(self, movie_id: str, language: str = "zh-CN") -> tuple:
         """
         根据提供的id获取电影信息.
 
@@ -348,10 +335,11 @@ class TMDBApi:
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_search_movie
-    def search_movie(self, keyword: str, language: str = "zh-CN") -> dict:
+    @Message.output_tmdb_search_movie
+    @ApiResponse.tmdb_api_response
+    def search_movie(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
         根据关键字匹配电影, 获取相关信息.
 
@@ -366,4 +354,4 @@ class TMDBApi:
         r = requests.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
