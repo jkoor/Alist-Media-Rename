@@ -1,66 +1,17 @@
-import asyncio
 from functools import wraps
 import re
 import sys
-from typing import Any, Union
+from typing import Any, Union, Callable
 from natsort import natsorted
 from rich import box
 from rich import print as rprint
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
-from .models import ApiResponseModel, Task, TaskResult
+from .models import ApiResponseModel
 
 
-class Debug:
-    """
-    工具类
-    """
-
-    debug_enabled = True
-    output_enabled = True
-
-    @staticmethod
-    def catch_exceptions_not_stop(func):
-        """
-        捕获函数异常
-        """
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> TaskResult:
-            # 捕获错误
-            try:
-                return TaskResult(
-                    func_name=func.__qualname__,
-                    args=list(args, **kwargs),
-                    success=True,
-                    data=func(*args, **kwargs),
-                    error="",
-                )
-
-            except Exception as e:
-                return TaskResult(
-                    func_name=func.__qualname__,
-                    args=list(args, **kwargs),
-                    success=False,
-                    data=ApiResponseModel(
-                        success=False, status_code=500, error="", data={}
-                    ),
-                    error=str(e),
-                )
-
-        return wrapper
-
-    @staticmethod
-    def stop_on_error(result_list: list[TaskResult]):
-        """在错误时停止"""
-        for result in result_list:
-            if not result.success:
-                Message.error("任务执行失败, 退出程序")
-                rprint(result)
-                sys.exit(0)
-
-
+# TODO: 拆分utils.py
 class Message:
     """打印消息类"""
 
@@ -147,10 +98,6 @@ class Message:
 
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return func(self, *args, **kwargs)
-
             # 判断登录状态
             if self.login_success is False:
                 Message.error("操作失败，用户未登录")
@@ -164,31 +111,30 @@ class Message:
         return wrapper
 
     @staticmethod
-    def output_alist_login(func):
+    def output_alist_login(func) -> Callable[..., ApiResponseModel]:
         """
         输出登录状态信息
         """
 
         @wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self, *args, **kwargs) -> ApiResponseModel:
             login_result: ApiResponseModel = func(self, *args, **kwargs)
 
             # 输出获取Token结果
             if login_result.success:
                 Message.success(f"主页: {self.url}")
             else:
-                Message.error(f"登录失败\t{login_result.data['message']}")
-                sys.exit(0)
+                Message.error(f"登录失败\t{login_result.error}")
             return login_result
 
         return wrapper
 
     @staticmethod
-    def output_alist_file_list(func):
+    def output_alist_file_list(func) -> Callable[..., ApiResponseModel]:
         """输出文件信息"""
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
             return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 输出结果
@@ -196,7 +142,6 @@ class Message:
                 Message.error(
                     f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.data['message']}"
                 )
-                sys.exit(0)
 
             # 返回请求结果
             return return_data
@@ -233,11 +178,11 @@ class Message:
         return wrapper
 
     @staticmethod
-    def output_alist_move(func):
+    def output_alist_move(func) -> Callable[..., ApiResponseModel]:
         """输出文件移动信息"""
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
             return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 输出移动结果
@@ -256,11 +201,11 @@ class Message:
         return wrapper
 
     @staticmethod
-    def output_alist_mkdir(func):
+    def output_alist_mkdir(func) -> Callable[..., ApiResponseModel]:
         """输出新建文件/文件夹信息"""
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
             return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 输出新建文件夹请求结果
@@ -279,16 +224,12 @@ class Message:
         return wrapper
 
     @staticmethod
-    def output_alist_remove(func):
+    def output_alist_remove(func) -> Callable[..., ApiResponseModel]:
         """输出文件/文件夹删除信息"""
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
             return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
 
             # 输出删除文件/文件夹请求结果
             if not return_data.success:
@@ -310,11 +251,11 @@ class Message:
         return wrapper
 
     @staticmethod
-    def output_tmdb_tv_info(func):
+    def output_tmdb_tv_info(func) -> Callable[..., ApiResponseModel]:
         """输出剧集信息"""
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
             return_data: ApiResponseModel = func(*args, **kwargs)
 
             # 请求失败则输出失败信息
@@ -361,14 +302,14 @@ class Message:
             # 请求失败则输出失败信息
             if not return_data.success:
                 Message.error(
-                    f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.data['status_message']}"
+                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.data['status_message']}"
                 )
                 return return_data
-            if not return_data.data["results"]:
-                Message.error(
-                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n    未查找到相关剧集"
-                )
-                return return_data
+            # if not return_data.data["results"]:
+            #     Message.error(
+            #         f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n    未查找到相关剧集"
+            #     )
+            #     return return_data
 
             Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
             table = Table(box=box.SIMPLE)
@@ -400,7 +341,6 @@ class Message:
                 Message.error(
                     f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n   {return_data.data['status_message']}"
                 )
-                return return_data
 
             return return_data
 
@@ -426,10 +366,6 @@ class Message:
         @wraps(func)
         def wrapper(*args, **kwargs):
             return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
 
             # 请求失败则输出失败信息
             if not return_data.success:
@@ -463,42 +399,14 @@ class Message:
         def wrapper(*args, **kwargs):
             return_data: ApiResponseModel = func(*args, **kwargs)
 
-            # 如果未启用调试模式，直接返回结果
-            if not Debug.output_enabled:
-                return return_data
-
             # 请求失败则输出失败信息
             if not return_data.success:
-                # print(
-                #     f"{Message.ColorStr.red('[✗]')} Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data['status_message']}"
-                # )
                 Message.error(
                     f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data.data['status_message']}"
                 )
                 return return_data
 
-            if not return_data.data["results"]:
-                # print(
-                #     f"{Message.ColorStr.red('[✗]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n查找不到任何相关电影"
-                # )
-                Message.error(
-                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n查找不到任何相关电影"
-                )
-                return return_data
-
-            # 格式化输出请求结果
-            # print(
-            #     f"{Message.ColorStr.green('[✓]')} 关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}"
-            # )
             Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
-            # print(f"{' 首播时间 ':<8}{'序号':^14}{'电影标题'}")
-            # print(f"{'----------':<12}{'-----':^16}{'----------------'}")
-
-            # for i, result in enumerate(return_data["results"]):
-            #     if "release_date" in result:
-            #         print(f"{result['release_date']:<12}{i:^16}{result['title']}")
-            #     else:
-            #         print(f"{'xxxx-xx-xx':<12}{i:^16}{result['title']}")
 
             table = Table(box=box.SIMPLE)
             table.add_column("首播时间", justify="center", style="cyan")
@@ -591,7 +499,7 @@ class Message:
 
     @staticmethod
     def print_rename_result(
-        tasks: list[TaskResult],
+        results: list[ApiResponseModel],
         video_count: int,
         subtitle_count: int,
         folder_count: int,
@@ -601,24 +509,24 @@ class Message:
         video_error_count = 0
         subtitle_error_count = 0
         folder_error_count = 0
-        error_list: list[TaskResult] = []
+        error_list: list[ApiResponseModel] = []
 
         # 统计视频重命名结果
         for i in range(video_count):
-            if not tasks[i].data.success:
+            if not results[i].success:
                 video_error_count += 1
-                error_list.append(tasks[i])
+                error_list.append(results[i])
 
         # 统计字幕重命名结果
         for i in range(video_count, video_count + subtitle_count):
-            if not tasks[i].data.success:
+            if not results[i].success:
                 subtitle_error_count += 1
-                error_list.append(tasks[i])
+                error_list.append(results[i])
 
         # 统计文件夹重命名结果
-        if not tasks[-1].data.success:
+        if not results[-1].success:
             folder_error_count += 1
-            error_list.append(tasks[-1])
+            error_list.append(results[-1])
 
         # 输出错误信息
         if video_error_count + subtitle_error_count + folder_error_count > 0:
@@ -632,7 +540,7 @@ class Message:
                     result.args[1].split("/")[-1],
                     "->",
                     Message.text_regex(result.args[0]),
-                    result.data.error,
+                    result.error,
                 )
             rprint(table)
 
@@ -802,57 +710,3 @@ class Tools:
         """替换非法字符"""
         illegal_char = r"[\/:*?\"<>|]" if extend else r"[/]"
         return re.sub(illegal_char, "_", filename)
-
-
-class Tasks:
-    """多任务运行（异步/同步）"""
-
-    @staticmethod
-    def exec_function(func, args):
-        """执行函数"""
-        decorated_func = Debug.catch_exceptions_not_stop(func)
-        return decorated_func(*args)
-
-    @staticmethod
-    def run_sync_tasks(task_list: list[Task]) -> list[TaskResult]:
-        """同步运行函数集"""
-
-        results = []
-
-        for task in task_list:
-            results.append(Tasks.exec_function(task.func, task.args))
-        return results
-
-    @staticmethod
-    def run_async_tasks(task_list: list[Task]) -> list[TaskResult]:
-        """异步运行函数集"""
-
-        async def run_task():
-            """异步处理函数"""
-            results = []  # 创建一个空字典来存储结果
-            futures = []
-            for task in task_list:
-                future = loop.run_in_executor(
-                    None, Tasks.exec_function, task.func, task.args
-                )
-                futures.append(future)
-            for future in futures:
-                results.append(await future)
-            return results
-            # done, pending = await asyncio.wait(futures)
-            # 将结果与执行函数对应起来
-            # for future in done:
-            #     results.append(future.result())
-            # return results, pending
-
-        loop = asyncio.new_event_loop()
-        done = loop.run_until_complete(run_task())
-        loop.close()
-        return done
-
-    @staticmethod
-    def run(task_list: list[Task], async_mode: bool) -> list[TaskResult]:
-        """运行函数集"""
-        if async_mode:
-            return Tasks.run_async_tasks(task_list)
-        return Tasks.run_sync_tasks(task_list)

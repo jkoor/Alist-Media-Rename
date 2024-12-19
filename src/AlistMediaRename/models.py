@@ -1,6 +1,5 @@
-from typing import Callable, Any
+from typing import Any
 from pydantic import BaseModel
-from typing import Union
 
 
 class AlistConfig(BaseModel):
@@ -97,30 +96,7 @@ class ApiResponseModel(BaseModel):
     success: bool
     status_code: int
     error: str
-    data: Any
-
-
-class Task(BaseModel):
-    """任务"""
-
-    # 任务名称
-    name: str
-    # 任务函数
-    func: Callable
-    # 任务参数
-    args: Union[list, tuple]
-
-
-class TaskResult(BaseModel):
-    """任务结果"""
-
-    # 任务函数
-    func_name: str
-    # 任务参数
-    args: list
-    # 任务结果
-    success: bool
-    # 返回数据
-    data: ApiResponseModel
-    # 任务异常
-    error: str
+    data: dict
+    function: str
+    args: tuple
+    kwargs: dict
