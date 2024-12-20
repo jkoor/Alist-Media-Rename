@@ -5,4 +5,4 @@ venv
 .pytest_cache
 uv.lock
 .env
-/test/files
+/tmp

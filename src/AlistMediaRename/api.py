@@ -1,8 +1,127 @@
+import asyncio
+from functools import wraps
+import httpx
 import pyotp
-import requests
-from .utils import PrintMessage
+from typing import Callable
 
-# from requests_toolbelt import MultipartEncoder
+from .models import ApiResponseModel, RenameTask
+from .log import HandleException
+from .output import Output
+from .utils import Tools
+
+
+sync_client = httpx.Client()
+async_client = httpx.AsyncClient()
+
+
+# 封装接口返回信息
+class ApiResponse:
+    """
+    封装接口返回信息
+    """
+
+    @staticmethod
+    def alist_api_response(func) -> Callable[..., ApiResponseModel]:
+        """
+        封装Alist api返回信息.
+        """
+
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs) -> ApiResponseModel:
+            rawdata = await func(*args, **kwargs)
+
+            if rawdata["message"] == "success":
+                return ApiResponseModel(
+                    success=True,
+                    status_code=rawdata["code"],
+                    error="",
+                    data=rawdata["data"] if rawdata["data"] else {},
+                    function=func.__qualname__,
+                    args=args,
+                    kwargs=kwargs,
+                )
+            return ApiResponseModel(
+                success=False,
+                status_code=rawdata["code"],
+                error=rawdata["message"],
+                data=rawdata["data"] if rawdata["data"] else {},
+                function=func.__qualname__,
+                args=args,
+                kwargs=kwargs,
+            )
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs) -> ApiResponseModel:
+            rawdata = func(*args, **kwargs)
+
+            if rawdata["message"] == "success":
+                return ApiResponseModel(
+                    success=True,
+                    status_code=rawdata["code"],
+                    error="",
+                    data=rawdata["data"] if rawdata["data"] else {},
+                    function=func.__qualname__,
+                    args=args,
+                    kwargs=kwargs,
+                )
+            else:
+                return ApiResponseModel(
+                    success=False,
+                    status_code=rawdata["code"],
+                    error=rawdata["message"],
+                    data=rawdata["data"] if rawdata["data"] else {},
+                    function=func.__qualname__,
+                    args=args,
+                    kwargs=kwargs,
+                )
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper  # type: ignore
+        else:
+            return sync_wrapper
+
+    @staticmethod
+    def tmdb_api_response(func) -> Callable[..., ApiResponseModel]:
+        """
+        封装TMDB api返回信息装饰器.
+        """
+
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> ApiResponseModel:
+            rawdata, status_code = func(*args, **kwargs)
+
+            if status_code == 200:
+                if "results" in rawdata and rawdata["results"] == []:
+                    return ApiResponseModel(
+                        success=False,
+                        status_code=status_code,
+                        error="指定关键词未查找到相关信息",
+                        data=rawdata["results"],
+                        function=func.__qualname__,
+                        args=args,
+                        kwargs=kwargs,
+                    )
+                return ApiResponseModel(
+                    success=True,
+                    status_code=status_code,
+                    error="",
+                    data=rawdata,
+                    function=func.__qualname__,
+                    args=args,
+                    kwargs=kwargs,
+                )
+            else:
+                return ApiResponseModel(
+                    success=False,
+                    status_code=status_code,
+                    error=rawdata.get("status_message", ""),
+                    data=rawdata,
+                    function=func.__qualname__,
+                    args=args,
+                    kwargs=kwargs,
+                )
+
+        return wrapper
 
 
 class AlistApi:
@@ -28,12 +147,13 @@ class AlistApi:
         self.password = password
         # 使用self.totp_code.now() 生成实时 TOTP 验证码
         self.totp_code = pyotp.TOTP(totp_code)
-        self.login_success = False
         self.token = ""
         self.timeout = 10
-        self.silence = False
 
-    @PrintMessage.output_alist_login
+    @HandleException.stop_on_error
+    @Output.output_alist_login
+    @HandleException.catch_exceptions
+    @ApiResponse.alist_api_response
     def login(self) -> dict:
         """
         获取登录Token
@@ -49,18 +169,25 @@ class AlistApi:
             "Password": self.password,
             "OtpCode": self.totp_code.now(),
         }
-        r = requests.post(url=post_url, data=post_datas, timeout=self.timeout)
+        r = sync_client.post(url=post_url, data=post_datas, timeout=self.timeout)
+
+        if r.status_code != 200:
+            return {"message": "Alist 网站连接失败", "code": r.status_code, "data": {}}
 
         return_data = r.json()
 
         if return_data["message"] == "success":
             self.token = return_data["data"]["token"]
-            self.login_success = True
 
+        # 隐藏Token信息
+        return_data["data"]["token"] = "********"
         # 返回请求结果
         return return_data
 
-    @PrintMessage.output_alist_file_list
+    @HandleException.stop_on_error
+    @Output.output_alist_file_list
+    @HandleException.catch_exceptions
+    @ApiResponse.alist_api_response
     def file_list(
         self,
         path: str = "/",
@@ -90,35 +217,109 @@ class AlistApi:
             "per_page": per_page,
             "page": page,
         }
-        r = requests.post(
+        r = sync_client.post(
             url=post_url, headers=post_headers, params=post_params, timeout=self.timeout
         )
 
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_rename
-    def rename(self, name: str, path: str) -> dict:
+    def rename_list(
+        self, rename_list: list[RenameTask], async_mode: bool = True
+    ) -> list[ApiResponseModel]:
         """
-        重命名文件/文件夹.
+        批量重命名文件.
 
-        :param name: 重命名名称
-        :param path: 源文件/文件夹路径
-        :return: 重命名文件/文件夹请求结果
+        :param rename_list: 重命名文件列表
+        :param folder_path: 文件所在文件夹路径
+        :param async_mode: 是否使用异步方式重命名文件
+        :return: 重命名文件请求结果
         """
 
-        # 发送请求
-        post_url = self.url + "/api/fs/rename"
-        post_headers = {"Authorization": self.token}
-        post_json = {"name": name, "path": path}
-        r = requests.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
+        if async_mode:
+            return self.rename_list_async(rename_list)
+        else:
+            return self.rename_list_sync(rename_list)
 
-        # 获取请求结果
-        return r.json()
+    def rename_list_async(
+        self, rename_list: list[RenameTask]
+    ) -> list[ApiResponseModel]:
+        @HandleException.catch_exceptions
+        @ApiResponse.alist_api_response
+        async def rename_async(name: str, path: str) -> dict:
+            """
+            异步重命名文件/文件夹.
 
-    @PrintMessage.output_alist_move
+            :param name: 重命名名称
+            :param path: 源文件/文件夹路径
+            :return: 重命名文件/文件夹请求结果
+            """
+
+            # 发送请求
+            post_url = self.url + "/api/fs/rename"
+            post_headers = {"Authorization": self.token}
+            post_json = {"name": name, "path": path}
+
+            r = await async_client.post(
+                url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+            )
+            # 获取请求结果
+            return r.json()
+
+        async def async_run(rename_list: list[RenameTask]) -> list[ApiResponseModel]:
+            tasks = []
+            for file in rename_list:
+                name = Tools.replace_illegal_char(file.target_name)
+                path = file.folder_path + file.original_name
+                tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
+
+            return await asyncio.gather(*tasks)
+
+        return asyncio.run(async_run(rename_list))
+
+    def rename_list_sync(self, rename_list: list[RenameTask]) -> list[ApiResponseModel]:
+        """
+        批量重命名文件.
+
+        :param rename_list: 重命名文件列表
+        :param folder_path: 文件所在文件夹路径
+        :return: 重命名文件请求结果
+        """
+
+        # @Message.output_alist_rename
+        @HandleException.catch_exceptions
+        @ApiResponse.alist_api_response
+        def rename(name: str, path: str) -> dict:
+            """
+            重命名文件/文件夹.
+
+            :param name: 重命名名称
+            :param path: 源文件/文件夹路径
+            :return: 重命名文件/文件夹请求结果
+            """
+
+            # 发送请求
+            post_url = self.url + "/api/fs/rename"
+            post_headers = {"Authorization": self.token}
+            post_json = {"name": name, "path": path}
+            r = sync_client.post(
+                url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+            )
+
+            # 获取请求结果
+            return r.json()
+
+        result = []
+        for file in rename_list:
+            name = Tools.replace_illegal_char(file.target_name)
+            path = file.folder_path + file.original_name
+            result.append(rename(name, path))
+
+        return result
+
+    @Output.output_alist_move
+    @HandleException.catch_exceptions
+    @ApiResponse.alist_api_response
     def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
         """
         移动文件/文件夹.
@@ -132,13 +333,15 @@ class AlistApi:
         post_url = self.url + "/api/fs/move"
         post_headers = {"Authorization": self.token}
         post_json = {"src_dir": src_dir, "dst_dir": dst_dir, "names": names}
-        r = requests.post(
+        r = sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_mkdir
+    @Output.output_alist_mkdir
+    @HandleException.catch_exceptions
+    @ApiResponse.alist_api_response
     def mkdir(self, path: str) -> dict:
         """
         新建文件夹.
@@ -150,13 +353,15 @@ class AlistApi:
         post_url = self.url + "/api/fs/mkdir"
         post_headers = {"Authorization": self.token}
         post_json = {"path": path}
-        r = requests.post(
+        r = sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
         # 获取请求结果
         return r.json()
 
-    @PrintMessage.output_alist_remove
+    @Output.output_alist_remove
+    @HandleException.catch_exceptions
+    @ApiResponse.alist_api_response
     def remove(self, path: str, names: list) -> dict:
         """
         删除文件/文件夹.
@@ -170,91 +375,10 @@ class AlistApi:
         post_url = self.url + "/api/fs/remove"
         post_headers = {"Authorization": self.token}
         post_json = {"dir": path, "names": names}
-        r = requests.post(
+        r = sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
 
-        # 获取请求结果
-        return r.json()
-
-    @PrintMessage.output_alist_download_link
-    def download_link(self, path: str, password=None) -> dict:
-        """
-        获取文件下载链接.
-
-        :param path: 文件路径
-        :param password: 文件访问密码
-        :return: 获取文件下载链接请求结果
-        """
-        # 发送请求
-        post_url = self.url + "/api/fs/get"
-        post_headers = {"Authorization": self.token}
-        post_json = {"path": path, "password": password}
-        r = requests.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
-        # 获取请求结果
-        return r.json()
-
-    def upload(self, path: str, file: str) -> dict:
-        """
-        上传文件.
-
-        :param path: 上传路径(包含文件) 如/abc/test.txt
-        :param file: 源文件路径(包含文件) 如/abc/test.txt
-        :return: 返回上传文件请求结果
-        """
-
-        print(
-            "由于上传文件需要调用第三方库：requests_toolbelt, "
-            "而主程序又用不到上传操作, 所以该函数代码被注释掉了, "
-            "如有需要请取消代码注释, 并把最上方调用代码取消注释!"
-        )
-        #     # 发送请求
-        #     post_url = self.url + '/api/fs/put'
-        #     upload_file = open(file, "rb")
-        #     # post_data = MultipartEncoder({upload_file.name: upload_file})
-        #     post_data = MultipartEncoder({upload_file.name: upload_file})
-        #     post_headers = {
-        #         'Authorization': self.token,
-        #         'File-path': parse.quote(path),
-        #         'Content-Type': post_data.content_type
-        #     }
-        #     r = requests.put(url=post_url, headers=post_headers, data=post_data)
-        #     # 获取请求结果
-        #     return_data = r.json()
-        #
-        #     # 静默返回请求结果,不输出内容
-        #     if silent:
-        #         return return_data
-
-        # 输出内容提醒颜色
-        # failure_msg = colorama.Fore.RED + '\n[Upload●Failure]' + colorama.Fore.RESET
-        # success_msg = colorama.Fore.GREEN + '\n[Upload●Success]' + colorama.Fore.RESET
-
-        #     # 输出上传文件请求结果
-        #     if return_data['message'] == 'success':
-        #         print(f"{success_msg} 上传路径: {path}\t本地路径: {file}")
-        #     else:
-        #         print(f"{failure_msg} 上传失败: {path}\t本地路径: {file}\n{return_data['message']}")
-        #
-        #     # 返回请求结果
-        #     return return_data
-
-        return {"注意": "查看输出内容"}
-
-    @PrintMessage.output_alist_disk_list
-    def disk_list(self) -> dict:
-        """
-        获取已添加存储列表.
-
-        :return: 获取已添加存储列表请求结果
-        """
-
-        # 发送请求
-        post_url = self.url + "/api/admin/storage/list"
-        post_headers = {"Authorization": self.token}
-        r = requests.get(url=post_url, headers=post_headers, timeout=self.timeout)
         # 获取请求结果
         return r.json()
 
@@ -272,12 +396,16 @@ class TMDBApi:
         :param key: TMDB Api Key(V3)
         """
 
-        self.api_url = "https://api.themoviedb.org/3"
+        # self.api_url = "https://api.themoviedb.org/3"
+        self.api_url = api_url
         self.api_key = api_key
         self.timeout = 10
 
-    @PrintMessage.output_tmdb_tv_info
-    def tv_info(self, tv_id: str, language: str = "zh-CN") -> dict:
+    @HandleException.stop_on_error
+    @Output.output_tmdb_tv_info
+    @HandleException.catch_exceptions
+    @ApiResponse.tmdb_api_response
+    def tv_info(self, tv_id: str, language: str = "zh-CN") -> tuple:
         """
         根据提供的id获取剧集信息.
 
@@ -289,12 +417,15 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = requests.get(post_url, params=post_params, timeout=self.timeout)
+        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_search_tv
-    def search_tv(self, keyword: str, language: str = "zh-CN") -> dict:
+    @HandleException.stop_on_error
+    @Output.output_tmdb_search_tv
+    @HandleException.catch_exceptions
+    @ApiResponse.tmdb_api_response
+    def search_tv(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
         根据关键字匹配剧集, 获取相关信息.
 
@@ -306,15 +437,18 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/tv"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = requests.get(post_url, params=post_params, timeout=self.timeout)
+        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_tv_season_info
+    @HandleException.stop_on_error
+    @Output.output_tmdb_tv_season_info
+    @HandleException.catch_exceptions
+    @ApiResponse.tmdb_api_response
     def tv_season_info(
         self, tv_id: str, season_number: int, language: str = "zh-CN"
-    ) -> dict:
+    ) -> tuple:
         """
         获取指定季度剧集信息.
         :param tv_id: 剧集id
@@ -326,13 +460,16 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}/season/{season_number}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = requests.get(post_url, params=post_params, timeout=self.timeout)
+        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_movie_info
-    def movie_info(self, movie_id: str, language: str = "zh-CN") -> dict:
+    @HandleException.stop_on_error
+    @Output.output_tmdb_movie_info
+    @HandleException.catch_exceptions
+    @ApiResponse.tmdb_api_response
+    def movie_info(self, movie_id: str, language: str = "zh-CN") -> tuple:
         """
         根据提供的id获取电影信息.
 
@@ -345,13 +482,16 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/movie/{movie_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = requests.get(post_url, params=post_params, timeout=self.timeout)
+        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code
 
-    @PrintMessage.output_tmdb_search_movie
-    def search_movie(self, keyword: str, language: str = "zh-CN") -> dict:
+    @HandleException.stop_on_error
+    @Output.output_tmdb_search_movie
+    @HandleException.catch_exceptions
+    @ApiResponse.tmdb_api_response
+    def search_movie(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
         根据关键字匹配电影, 获取相关信息.
 
@@ -363,7 +503,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/movie"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = requests.get(post_url, params=post_params, timeout=self.timeout)
+        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
-        return r.json()
+        return r.json(), r.status_code

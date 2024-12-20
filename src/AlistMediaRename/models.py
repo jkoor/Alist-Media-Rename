@@ -1,6 +1,4 @@
-from typing import Any, Callable
 from pydantic import BaseModel
-from typing import Union
 
 
 class AlistConfig(BaseModel):
@@ -20,6 +18,7 @@ class AlistConfig(BaseModel):
 
 class TmdbConfig(BaseModel):
     """Tmdb配置参数"""
+
     # TMDB Api Url
     api_url: str = "https://api.themoviedb.org/3"
     # TMDB Api Key(V3)
@@ -92,27 +91,19 @@ class Formated_Variables:
         title: str  # 单集标题
 
 
-class Task(BaseModel):
-    """任务"""
+class RenameTask(BaseModel):
+    """重命名任务"""
 
-    # 任务名称
-    name: str
-    # 任务函数
-    func: Callable
-    # 任务参数
-    args: Union[list, tuple]
+    original_name: str = '' # 原始文件名
+    target_name: str = '' # 目标文件名
+    folder_path: str = '' # 文件夹路径
 
 
-class TaskResult(BaseModel):
-    """任务结果"""
-
-    # 任务函数
-    func_name: str
-    # 任务参数
-    args: list
-    # 任务结果
+class ApiResponseModel(BaseModel):
     success: bool
-    # 返回数据
-    data: Any
-    # 任务异常
+    status_code: int
     error: str
+    data: dict
+    function: str
+    args: tuple
+    kwargs: dict

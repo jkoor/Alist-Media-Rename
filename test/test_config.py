@@ -1,10 +1,11 @@
 import filecmp
-import pytest
 import os
-from AlistMediaRename import Amr
+from unittest import mock
+from AlistMediaRename import Config
 
 
-def test_config_file_is_not_exist(monkeypatch):
+@mock.patch("builtins.input")
+def test_config_file_is_not_exist(mocked_input):
     """
     测试环境:
     1. 初次运行，配置文件不存在
@@ -17,16 +18,14 @@ def test_config_file_is_not_exist(monkeypatch):
     4. 删除生成的配置文件
     """
     # 模拟用户输入
-    inputs = iter(["", "", "", "", ""])
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    mocked_input.side_effect = [" ", "", "", "", ""]
 
     # 捕获并忽略 SystemExit 异常
-    with pytest.raises(SystemExit):
-        Amr("./test/test_config_file.yaml")
+    Config("./test/test_config_file.yaml")
 
     # 比较生成的文件与目标文件
     assert filecmp.cmp(
-        "./test/test_config_file.yaml", "./src/AlistMediaRename/default.yaml"
+        "./test/test_config_file.yaml", "src/AlistMediaRename/default.yaml"
     ), "生成的文件与目标文件不相同"
 
     # 删除生成的文件
