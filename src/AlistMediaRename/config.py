@@ -1,7 +1,7 @@
 import importlib.resources
 from ruamel.yaml import YAML
 from .models import Settings
-from .utils import Message
+from .output import Message, console
 
 
 class Config:
@@ -15,7 +15,8 @@ class Config:
 
         if self.filepath:
             try:
-                self.load(self.filepath)
+                with console.status("加载配置文件..."):
+                    self.load(self.filepath)
 
             except Exception as e:
                 Message.error(f"加载配置文件失败: {e}")
@@ -51,7 +52,7 @@ class Config:
         """保存配置"""
 
         self._yaml.preserve_quotes = True
-        with importlib.resources.open_text("AlistMediaRename", "default.yaml") as f:
+        with importlib.resources.files("AlistMediaRename").joinpath("default.yaml").open("r", encoding="utf-8") as f:
             default_config = self._yaml.load(f)
 
         # 更新默认配置

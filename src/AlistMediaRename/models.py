@@ -1,4 +1,3 @@
-from typing import Any
 from pydantic import BaseModel
 
 
@@ -90,6 +89,14 @@ class Formated_Variables:
         air_date: str  # 单集播放日期
         episode_rating: float  # 单集评分
         title: str  # 单集标题
+
+
+class RenameTask(BaseModel):
+    """重命名任务"""
+
+    original_name: str = '' # 原始文件名
+    target_name: str = '' # 目标文件名
+    folder_path: str = '' # 文件夹路径
 
 
 class ApiResponseModel(BaseModel):

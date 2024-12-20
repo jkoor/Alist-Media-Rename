@@ -6,7 +6,7 @@ class TestUtils:
     "测试工具类"
 
     @staticmethod
-    def generate_random_files(folder_path, file_count, index, filename, extension):
+    def generate_random_files(folder_path: str, file_count: int, index: int, filename: str, extension: str):
         """随机生成媒体文件"""
         # 检查文件夹是否存在，如果不存在则创建它
         folder_path += filename

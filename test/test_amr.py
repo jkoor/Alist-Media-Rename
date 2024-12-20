@@ -1,13 +1,14 @@
 import os
+from unittest import mock
 from test.utils import TestUtils
-from AlistMediaRename import Amr, Config
 
 
-def test_tv_rename_id(monkeypatch):
+@mock.patch("builtins.input")
+def test_tv_rename_id(mocked_input):
+    from AlistMediaRename import Amr, Config, logger
+
     # 模拟用户输入
-    inputs = iter(["1", ""])
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
-
+    mocked_input.side_effect = ["1", "y"]
     # 初始化
     config = Config()
     config.alist.url = os.getenv("ALIST_URL", "")
@@ -18,20 +19,20 @@ def test_tv_rename_id(monkeypatch):
     amr = Amr(config)
 
     tv_id = "45782"
-    folderpath = "./test/files/test_amr/"
+    folderpath = "./tmp/files/test_amr/"
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".mp4")
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".ass")
-    results = amr.tv_rename_id(tv_id, "files/test_amr/episode")
-    for result in results:
+    amr.tv_rename_id(tv_id, "/files/test_amr/episode")
+    for result in logger.log:
         assert result.success
-
     TestUtils.delete_folder(folderpath)
 
 
-def test_tv_rename_keyword(monkeypatch):
+@mock.patch("builtins.input")
+def test_tv_rename_keyword(mocked_input):
     # 模拟用户输入
-    inputs = iter(["0", "1", ""])
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    mocked_input.side_effect = ["0", "1", ""]
+    from AlistMediaRename import Amr, Config, logger
 
     # 初始化
     config = Config()
@@ -43,19 +44,21 @@ def test_tv_rename_keyword(monkeypatch):
     amr = Amr(config)
 
     keyword = "约会大作战"
-    folderpath = "./test/files/test_amr/"
+    folderpath = "./tmp/files/test_amr/"
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".mp4")
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".ass")
-    results = amr.tv_rename_keyword(keyword, "files/test_amr/episode")
-    for result in results:
+    result = amr.tv_rename_keyword(keyword, "files/test_amr/episode")
+    for result in logger.log:
         assert result.success
+
     TestUtils.delete_folder(folderpath)
 
 
-def test_movie_rename_id(monkeypatch):
+@mock.patch("builtins.input")
+def test_movie_rename_id(mocked_input):
     # 模拟用户输入
-    inputs = iter(["1", ""])
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    mocked_input.side_effect = ["1", "y"]
+    from AlistMediaRename import Amr, Config, logger
 
     # 初始化
     config = Config()
@@ -67,19 +70,21 @@ def test_movie_rename_id(monkeypatch):
     amr = Amr(config)
 
     movie_id = "24428"
-    folderpath = "./test/files/test_amr/"
+    folderpath = "./tmp/files/test_amr/"
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".mp4")
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".ass")
-    results = amr.movie_rename_id(movie_id, "files/test_amr/movie")
-    for result in results:
+    result = amr.movie_rename_id(movie_id, "files/test_amr/movie")
+    for result in logger.log:
         assert result.success
+
     TestUtils.delete_folder(folderpath)
 
 
-def test_movie_rename_keyword(monkeypatch):
+@mock.patch("builtins.input")
+def test_movie_rename_keyword(mocked_input):
     # 模拟用户输入
-    inputs = iter(["3", "1", ""])
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    mocked_input.side_effect = ["3", "1", " ", ""]
+    from AlistMediaRename import Amr, Config, logger
 
     # 初始化
     config = Config()
@@ -91,10 +96,11 @@ def test_movie_rename_keyword(monkeypatch):
     amr = Amr(config)
 
     keyword = "复仇者联盟"
-    folderpath = "./test/files/test_amr/"
+    folderpath = "./tmp/files/test_amr/"
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".mp4")
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".ass")
-    results = amr.movie_rename_keyword(keyword, "files/test_amr/movie")
-    for result in results:
+    result = amr.movie_rename_keyword(keyword, "files/test_amr/movie")
+    for result in logger.log:
         assert result.success
+
     TestUtils.delete_folder(folderpath)

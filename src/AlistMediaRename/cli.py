@@ -1,5 +1,5 @@
 from typing import Union
-from AlistMediaRename import Amr
+from AlistMediaRename import Amr, logger
 from importlib.metadata import version
 import click
 
@@ -33,6 +33,7 @@ import click
 @click.option(
     "--folder/--no-folder", default=None, help="是否对父文件夹进行重命名(可选)"
 )
+@click.option("--verbose", is_flag=True, help="显示详细信息(可选)")
 @click.version_option(
     version("AlistMediaRename"), "-v", "--version", help="显示版本信息"
 )
@@ -45,6 +46,7 @@ def start(
     movie: bool,
     number: str,
     password: str,
+    verbose: bool,
 ):
     """
     利用TMDB api获取剧集标题, 并对Alist对应剧集文件进行重命名, 便于播放器识别剧集信息\n
@@ -60,6 +62,12 @@ def start(
     :param number: 指定从第几集开始重命名
     :param password: 文件访问密码
     """
+
+    # 设置日志级别
+    if verbose:
+        logger.verbose_mode = True
+
+    # 初始化
     amr = Amr(config)
     if folder is not None:
         amr.config.settings.amr.media_folder_rename = folder
@@ -77,6 +85,7 @@ def start(
         else:
             amr.tv_rename_keyword(keyword, dir, password, number)
 
+    print(logger)
 
 if __name__ == "__main__":
     start()

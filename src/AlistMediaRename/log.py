@@ -1,22 +1,15 @@
-# TODO: 尝试解决log输出问题
-
+import asyncio
 from functools import wraps
-import sys
 from typing import Callable
-from rich import print as rprint
 from .models import ApiResponseModel
-
-
-# debug_mode = False
-# verbose_mode = False
-# logger = []
+from .output import console, Message
 
 
 class Logger:
     _instance = None
-    debug_mode = True
+    debug_mode = False
     verbose_mode = False
-    log = []
+    log: list[ApiResponseModel] = []
 
     def __new__(cls):
         if cls._instance is None:
@@ -41,8 +34,8 @@ class HandleException:
         def wrapper(*args, **kwargs) -> ApiResponseModel:
             result: ApiResponseModel = func(*args, **kwargs)
             if not result.success:
-                rprint(result.model_dump()) if not logger.verbose_mode else None
-                sys.exit(0)
+                console.print(result.model_dump()) if not logger.verbose_mode else None
+                Message.error("退出程序")
             return result
 
         return wrapper
@@ -54,18 +47,17 @@ class HandleException:
         """
 
         @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
+        async def async_wrapper(*args, **kwargs) -> ApiResponseModel:
             # 捕获错误
-
             try:
-                result = func(*args, **kwargs)
+                result = await func(*args, **kwargs)
                 if logger.verbose_mode:
-                    rprint(result.model_dump())
+                    console.print(result.model_dump())
+                logger.log.append(result)
                 return result
             except Exception as e:
                 if logger.debug_mode:
-                    print("yes")
-                    # raise e
+                    raise e
                 result = ApiResponseModel(
                     success=False,
                     status_code=-1,
@@ -75,8 +67,40 @@ class HandleException:
                     args=args,
                     kwargs=kwargs,
                 )
+                logger.log.append(result)
                 if logger.verbose_mode:
-                    rprint(result.model_dump())
+                    console.print(result.model_dump())
                 return result
 
-        return wrapper
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs) -> ApiResponseModel:
+            # 捕获错误
+
+            try:
+                result = func(*args, **kwargs)
+                if logger.verbose_mode:
+                    console.print(result.model_dump())
+                logger.log.append(result)
+                return result
+            except Exception as e:
+                if logger.debug_mode:
+                    raise e
+                result = ApiResponseModel(
+                    success=False,
+                    status_code=-1,
+                    error=str(e),
+                    data={},
+                    function=func.__qualname__,
+                    args=args,
+                    kwargs=kwargs,
+                )
+                logger.log.append(result)
+                if logger.verbose_mode:
+                    console.print(result.model_dump())
+                return result
+
+        # return sync_wrapper
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper  # type: ignore
+        else:
+            return sync_wrapper
