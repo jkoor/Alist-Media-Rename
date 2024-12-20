@@ -418,7 +418,7 @@ class Output:
     ):
         """打印重命名信息"""
         if len(video_rename_list) > 0:
-            Message.info(f"以下视频文件将会重命名: 共计 {len(subtitle_rename_list)}")
+            Message.info(f"以下视频文件将会重命名: 共计 {len(video_rename_list)}")
             table = Table(box=box.SIMPLE)
             table.add_column("原文件名", justify="left", style="grey53", no_wrap=True)
             table.add_column(" ", justify="left", style="grey70")
@@ -473,10 +473,10 @@ class Output:
                 # 获取到多项匹配结果，手动选择
                 number = Prompt.ask(
                     Message.ask(
-                        "查询到以上结果，请输入对应[green][序号][/green], 输入[red]\[n][/red]退出",  # type: ignore
+                        "查询到以上结果，请输入对应[green]序号[/green], 输入[red] n [/red]退出",
                         printf=False,
                     )
-                )  # type: ignore
+                )
                 if number.lower() == "n":
                     Message.congratulation("See you!")
                     sys.exit(0)
