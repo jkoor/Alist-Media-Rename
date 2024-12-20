@@ -96,7 +96,7 @@ class ApiResponse:
                         success=False,
                         status_code=status_code,
                         error="指定关键词未查找到相关信息",
-                        data=rawdata["results"],
+                        data=rawdata,
                         function=func.__qualname__,
                         args=args,
                         kwargs=kwargs,
