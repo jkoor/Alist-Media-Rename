@@ -35,7 +35,7 @@ class HandleException:
             result: ApiResponseModel = func(*args, **kwargs)
             if not result.success:
                 console.print(result.model_dump()) if not logger.verbose_mode else None
-                Message.error("退出程序")
+                Message.exit("程序发生错误，已停止")
             return result
 
         return wrapper

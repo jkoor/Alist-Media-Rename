@@ -76,7 +76,7 @@ class ApiResponse:
                 )
 
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper # type: ignore
+            return async_wrapper  # type: ignore
         else:
             return sync_wrapper
 
@@ -224,29 +224,6 @@ class AlistApi:
         # 获取请求结果
         return r.json()
 
-    # @Message.output_alist_rename
-    @HandleException.catch_exceptions
-    @ApiResponse.alist_api_response
-    def rename(self, name: str, path: str) -> dict:
-        """
-        重命名文件/文件夹.
-
-        :param name: 重命名名称
-        :param path: 源文件/文件夹路径
-        :return: 重命名文件/文件夹请求结果
-        """
-
-        # 发送请求
-        post_url = self.url + "/api/fs/rename"
-        post_headers = {"Authorization": self.token}
-        post_json = {"name": name, "path": path}
-        r = sync_client.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
-
-        # 获取请求结果
-        return r.json()
-
     def rename_list(
         self, rename_list: list[RenameTask], async_mode: bool = True
     ) -> list[ApiResponseModel]:
@@ -291,13 +268,12 @@ class AlistApi:
 
         async def async_run(rename_list: list[RenameTask]) -> list[ApiResponseModel]:
             tasks = []
-            async with async_client:
-                for file in rename_list:
-                    name = Tools.replace_illegal_char(file.target_name)
-                    path = file.folder_path + file.original_name
-                    tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
+            for file in rename_list:
+                name = Tools.replace_illegal_char(file.target_name)
+                path = file.folder_path + file.original_name
+                tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
 
-                return await asyncio.gather(*tasks)
+            return await asyncio.gather(*tasks)
 
         return asyncio.run(async_run(rename_list))
 
@@ -310,11 +286,34 @@ class AlistApi:
         :return: 重命名文件请求结果
         """
 
+        # @Message.output_alist_rename
+        @HandleException.catch_exceptions
+        @ApiResponse.alist_api_response
+        def rename(name: str, path: str) -> dict:
+            """
+            重命名文件/文件夹.
+
+            :param name: 重命名名称
+            :param path: 源文件/文件夹路径
+            :return: 重命名文件/文件夹请求结果
+            """
+
+            # 发送请求
+            post_url = self.url + "/api/fs/rename"
+            post_headers = {"Authorization": self.token}
+            post_json = {"name": name, "path": path}
+            r = sync_client.post(
+                url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
+            )
+
+            # 获取请求结果
+            return r.json()
+
         result = []
         for file in rename_list:
             name = Tools.replace_illegal_char(file.target_name)
             path = file.folder_path + file.original_name
-            result.append(self.rename(name, path))
+            result.append(rename(name, path))
 
         return result
 

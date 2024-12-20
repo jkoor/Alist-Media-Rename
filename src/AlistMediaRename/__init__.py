@@ -171,24 +171,33 @@ class Amr:
             folder_count = 0
             if self.config.amr.media_folder_rename:
                 folder_count = 1
-                result_folder_rename = self.alist.rename(
-                    Tools.replace_illegal_char(folder_rename_title), folder_path[:-1]
+                folder_rename_list: list[RenameTask] = [
+                    RenameTask(
+                        original_name="",
+                        target_name=folder_rename_title,
+                        folder_path=folder_path,
+                    )
+                ]
+                result_folder_rename: list[ApiResponseModel] = self.alist.rename_list(
+                    folder_rename_list, async_mode=self.config.amr.rename_by_async
                 )
             else:
-                result_folder_rename = ApiResponseModel(
-                    success=True,
-                    status_code=200,
-                    error="",
-                    data={"result": "未重命名父文件夹"},
-                    function="重命名父文件夹",
-                    args=(),
-                    kwargs={},
-                )
+                result_folder_rename = [
+                    ApiResponseModel(
+                        success=True,
+                        status_code=200,
+                        error="",
+                        data={"result": "未重命名父文件夹"},
+                        function="重命名父文件夹",
+                        args=(),
+                        kwargs={},
+                    )
+                ]
 
         # Step 9: 输出重命名结果
         # TODO: 使用装饰器输出重命名结果
         Output.print_rename_result(
-            result_rename_list + [result_folder_rename],
+            result_rename_list + result_folder_rename,
             len(video_rename_list),
             len(subtitle_rename_list),
             folder_count,
@@ -291,7 +300,11 @@ class Amr:
             video_list, [target_name], folder_path, self.config.amr.exclude_renamed, "1"
         )
         subtitle_rename_list: list[RenameTask] = Tools.match_episode_files(
-            subtitle_list, [target_name], folder_path, self.config.amr.exclude_renamed, "1"
+            subtitle_list,
+            [target_name],
+            folder_path,
+            self.config.amr.exclude_renamed,
+            "1",
         )
         # 获取父文件夹重命名标题
         folder_rename_title = self.config.amr.folder_name_format.format(
@@ -323,23 +336,32 @@ class Amr:
             folder_count = 0
             if self.config.amr.media_folder_rename:
                 folder_count = 1
-                result_folder_rename: ApiResponseModel = self.alist.rename(
-                    Tools.replace_illegal_char(folder_rename_title), folder_path[:-1]
+                folder_rename_list: list[RenameTask] = [
+                    RenameTask(
+                        original_name="",
+                        target_name=folder_rename_title,
+                        folder_path=folder_path,
+                    )
+                ]
+                result_folder_rename: list[ApiResponseModel] = self.alist.rename_list(
+                    folder_rename_list, async_mode=self.config.amr.rename_by_async
                 )
             else:
-                result_folder_rename = ApiResponseModel(
-                    success=True,
-                    status_code=200,
-                    error="",
-                    data={"result": "未重命名父文件夹"},
-                    function="重命名父文件夹",
-                    args=(),
-                    kwargs={},
-                )
+                result_folder_rename = [
+                    ApiResponseModel(
+                        success=True,
+                        status_code=200,
+                        error="",
+                        data={"result": "未重命名父文件夹"},
+                        function="重命名父文件夹",
+                        args=(),
+                        kwargs={},
+                    )
+                ]
 
         # Step 7: 输出重命名结果
         Output.print_rename_result(
-            result_rename_list + [result_folder_rename],
+            result_rename_list + result_folder_rename,
             len(video_rename_list),
             len(subtitle_rename_list),
             folder_count,

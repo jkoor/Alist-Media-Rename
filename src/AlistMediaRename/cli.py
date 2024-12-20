@@ -1,7 +1,12 @@
 from typing import Union
-from AlistMediaRename import Amr, logger
 from importlib.metadata import version
+
+from AlistMediaRename import Amr, logger
 import click
+import rich
+from rich.traceback import install
+
+install(show_locals=True, suppress=[click, rich])
 
 
 @click.command(
@@ -85,7 +90,6 @@ def start(
         else:
             amr.tv_rename_keyword(keyword, dir, password, number)
 
-    print(logger)
 
 if __name__ == "__main__":
     start()

@@ -79,7 +79,6 @@ class Tools:
         rename_list_filter: list[RenameTask] = []
 
         # 创建hash表和队列
-        # rename_list: list[dict[str, str]] = [{}] * len(target_list)
         rename_list: list[RenameTask] = [RenameTask()] * len(target_list)
         target_dict: dict[str, int] = {item: i for i, item in enumerate(target_list)}
         queue = []

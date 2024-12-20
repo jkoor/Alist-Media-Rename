@@ -6,7 +6,6 @@ from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
-from .api import sync_client
 from .models import ApiResponseModel, RenameTask
 from .utils import Tools
 
@@ -73,6 +72,7 @@ class Message:
 
     @staticmethod
     def congratulation(message: str, printf: bool = True):
+        from .api import sync_client
         sync_client.close()
         if printf:
             console.print(f":party_popper: {message}")
@@ -80,6 +80,7 @@ class Message:
 
     @staticmethod
     def exit(message: str, printf: bool = True):
+        from .api import sync_client
         sync_client.close()
         sys.exit(0)
         if printf:
@@ -102,7 +103,6 @@ class Message:
         return t
 
 
-# TODO: 拆分utils.py
 class Output:
     """打印消息类"""
 
