@@ -25,6 +25,12 @@ class Tools:
         return path[: path[:-1].rfind("/") + 1]
 
     @staticmethod
+    def get_current_path(path: str) -> str:
+        """获取当前目录名称"""
+        path = Tools.ensure_slash(path)
+        return path.split("/")[-2]
+
+    @staticmethod
     def filter_file(file_list: list, pattern: str) -> list:
         """筛选列表，并以自然排序返回"""
 

@@ -173,13 +173,13 @@ class Amr:
                 folder_count = 1
                 folder_rename_list: list[RenameTask] = [
                     RenameTask(
-                        original_name="",
+                        original_name=Tools.get_current_path(folder_path),
                         target_name=folder_rename_title,
-                        folder_path=folder_path,
+                        folder_path=Tools.get_parent_path(folder_path),
                     )
                 ]
                 result_folder_rename: list[ApiResponseModel] = self.alist.rename_list(
-                    folder_rename_list, async_mode=self.config.amr.rename_by_async
+                    folder_rename_list, async_mode=False
                 )
             else:
                 result_folder_rename = [
@@ -338,13 +338,13 @@ class Amr:
                 folder_count = 1
                 folder_rename_list: list[RenameTask] = [
                     RenameTask(
-                        original_name="",
+                        original_name=Tools.get_current_path(folder_path),
                         target_name=folder_rename_title,
-                        folder_path=folder_path,
+                        folder_path=Tools.get_parent_path(folder_path),
                     )
                 ]
                 result_folder_rename: list[ApiResponseModel] = self.alist.rename_list(
-                    folder_rename_list, async_mode=self.config.amr.rename_by_async
+                    folder_rename_list, async_mode=False
                 )
             else:
                 result_folder_rename = [

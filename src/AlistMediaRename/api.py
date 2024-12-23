@@ -11,7 +11,6 @@ from .utils import Tools
 
 
 sync_client = httpx.Client()
-async_client = httpx.AsyncClient()
 
 
 # 封装接口返回信息
@@ -244,36 +243,43 @@ class AlistApi:
     def rename_list_async(
         self, rename_list: list[RenameTask]
     ) -> list[ApiResponseModel]:
-        @HandleException.catch_exceptions
-        @ApiResponse.alist_api_response
-        async def rename_async(name: str, path: str) -> dict:
-            """
-            异步重命名文件/文件夹.
-
-            :param name: 重命名名称
-            :param path: 源文件/文件夹路径
-            :return: 重命名文件/文件夹请求结果
-            """
-
-            # 发送请求
-            post_url = self.url + "/api/fs/rename"
-            post_headers = {"Authorization": self.token}
-            post_json = {"name": name, "path": path}
-
-            r = await async_client.post(
-                url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-            )
-            # 获取请求结果
-            return r.json()
-
         async def async_run(rename_list: list[RenameTask]) -> list[ApiResponseModel]:
-            tasks = []
-            for file in rename_list:
-                name = Tools.replace_illegal_char(file.target_name)
-                path = file.folder_path + file.original_name
-                tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
+            async_client = httpx.AsyncClient()
 
-            return await asyncio.gather(*tasks)
+            @HandleException.catch_exceptions
+            @ApiResponse.alist_api_response
+            async def rename_async(name: str, path: str) -> dict:
+                """
+                异步重命名文件/文件夹.
+
+                :param name: 重命名名称
+                :param path: 源文件/文件夹路径
+                :return: 重命名文件/文件夹请求结果
+                """
+
+                # 发送请求
+                post_url = self.url + "/api/fs/rename"
+                post_headers = {"Authorization": self.token}
+                post_json = {"name": name, "path": path}
+
+                r = await async_client.post(
+                    url=post_url,
+                    headers=post_headers,
+                    json=post_json,
+                    timeout=self.timeout,
+                )
+                # 获取请求结果
+                return r.json()
+
+            async with async_client:
+                tasks = []
+                for file in rename_list:
+                    name = Tools.replace_illegal_char(file.target_name)
+                    path = file.folder_path + file.original_name
+                    tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
+
+                results: list[ApiResponseModel] = await asyncio.gather(*tasks)
+            return results
 
         return asyncio.run(async_run(rename_list))
 
