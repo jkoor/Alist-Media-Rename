@@ -72,20 +72,16 @@ class Message:
 
     @staticmethod
     def congratulation(message: str, printf: bool = True):
-        from .api import sync_client
-        sync_client.close()
         if printf:
-            console.print(f":party_popper: {message}")
+            console.print(f"\n:party_popper: {message}")
         return f":party_popper: {message}"
 
     @staticmethod
-    def exit(message: str, printf: bool = True):
+    def exit():
         from .api import sync_client
+
         sync_client.close()
         sys.exit(0)
-        if printf:
-            console.print(f":wave: {message}")
-        return f":wave: {message}"
 
     @staticmethod
     def question(message: str, printf: bool = True):
@@ -460,7 +456,8 @@ class Output:
             return True
         else:
             Message.congratulation("See you!")
-            sys.exit(0)
+            Message.exit()
+            return False
 
     @staticmethod
     def select_number(result_list: list[Any]) -> int:
@@ -479,7 +476,7 @@ class Output:
                 )
                 if number.lower() == "n":
                     Message.congratulation("See you!")
-                    sys.exit(0)
+                    Message.exit()
                 if number.isdigit() and 0 <= int(number) < len(result_list):
                     return int(number)
 
@@ -551,5 +548,5 @@ class Output:
             Message.success(f"父文件夹: 成功 [green]{folder_count}[/green]")
 
         # 程序运行结束
-        console.print("\n")
         Message.congratulation("重命名完成")
+        Message.exit()
