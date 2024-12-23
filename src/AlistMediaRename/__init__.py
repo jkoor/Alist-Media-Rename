@@ -143,7 +143,7 @@ class Amr:
         )
 
         # 获取父文件夹重命名标题
-        folder_rename_title = self.config.amr.folder_name_format.format(**vars(fv_tv))
+        folder_target_name = self.config.amr.folder_name_format.format(**vars(fv_tv))
 
         ### ------------------------ 4. 进行重命名操作 -------------------- ###
 
@@ -152,7 +152,7 @@ class Amr:
             video_rename_list,
             subtitle_rename_list,
             self.config.amr.media_folder_rename,
-            folder_rename_title,
+            folder_target_name,
             folder_path,
         )
 
@@ -169,12 +169,16 @@ class Amr:
 
             # 重命名父文件夹 格式: 复仇者联盟 (2012)
             folder_count = 0
-            if self.config.amr.media_folder_rename:
+            original_name = Tools.get_current_path(folder_path)
+            if (
+                self.config.amr.media_folder_rename
+                and original_name != folder_target_name
+            ):
                 folder_count = 1
                 folder_rename_list: list[RenameTask] = [
                     RenameTask(
                         original_name=Tools.get_current_path(folder_path),
-                        target_name=folder_rename_title,
+                        target_name=folder_target_name,
                         folder_path=Tools.get_parent_path(folder_path),
                     )
                 ]
@@ -307,9 +311,7 @@ class Amr:
             "1",
         )
         # 获取父文件夹重命名标题
-        folder_rename_title = self.config.amr.folder_name_format.format(
-            **vars(fv_movie)
-        )
+        folder_target_name = self.config.amr.folder_name_format.format(**vars(fv_movie))
 
         ### ------------------------ 4. 进行重命名操作 -------------------- ###
         # Step 4: 输出重命名文件信息
@@ -317,7 +319,7 @@ class Amr:
             video_rename_list,
             subtitle_rename_list,
             self.config.amr.media_folder_rename,
-            folder_rename_title,
+            folder_target_name,
             folder_path,
         )
 
@@ -334,12 +336,16 @@ class Amr:
 
             # 重命名父文件夹 格式: 复仇者联盟 (2012)
             folder_count = 0
-            if self.config.amr.media_folder_rename:
+            original_name = Tools.get_current_path(folder_path)
+            if (
+                self.config.amr.media_folder_rename
+                and original_name != folder_target_name
+            ):
                 folder_count = 1
                 folder_rename_list: list[RenameTask] = [
                     RenameTask(
-                        original_name=Tools.get_current_path(folder_path),
-                        target_name=folder_rename_title,
+                        original_name=original_name,
+                        target_name=folder_target_name,
                         folder_path=Tools.get_parent_path(folder_path),
                     )
                 ]
