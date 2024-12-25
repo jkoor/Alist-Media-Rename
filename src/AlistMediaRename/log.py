@@ -2,7 +2,7 @@ import asyncio
 from functools import wraps
 from typing import Callable
 from .models import ApiResponseModel
-from .output import console, Message
+from .output import console, UserExit
 
 
 class Logger:
@@ -20,6 +20,10 @@ class Logger:
 logger = Logger()
 
 
+class ApiResponseError(Exception):
+    pass
+
+
 # 处理异常
 class HandleException:
     """
@@ -27,7 +31,7 @@ class HandleException:
     """
 
     @staticmethod
-    def stop_on_error(func) -> Callable[..., ApiResponseModel]:
+    def raise_error(func) -> Callable[..., ApiResponseModel]:
         """在错误时停止"""
 
         @wraps(func)
@@ -35,13 +39,13 @@ class HandleException:
             result: ApiResponseModel = func(*args, **kwargs)
             if not result.success:
                 console.print(result.model_dump()) if not logger.verbose_mode else None
-                Message.exit()
+                raise ApiResponseError(result.error)
             return result
 
         return wrapper
 
     @staticmethod
-    def catch_exceptions(func) -> Callable[..., ApiResponseModel]:
+    def catch_api_exceptions(func) -> Callable[..., ApiResponseModel]:
         """
         捕获函数异常
         """
@@ -104,3 +108,27 @@ class HandleException:
             return async_wrapper  # type: ignore
         else:
             return sync_wrapper
+
+    @staticmethod
+    def catch_main_exceptions(func):
+        """
+        捕获函数异常
+        """
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # 捕获错误
+
+            try:
+                return func(*args, **kwargs)
+            except ApiResponseError as e:
+                if logger.debug_mode:
+                    raise e
+            except UserExit:
+                pass
+            except Exception as e:
+                if logger.debug_mode:
+                    raise e
+                raise e
+
+        return wrapper

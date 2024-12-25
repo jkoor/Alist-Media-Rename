@@ -3,10 +3,9 @@ from importlib.metadata import version
 
 from AlistMediaRename import Amr, logger
 import click
-import rich
 from rich.traceback import install
 
-install(show_locals=True, suppress=[click, rich])
+install(show_locals=False, suppress=[click])
 
 
 @click.command(

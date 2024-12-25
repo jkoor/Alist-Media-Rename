@@ -1,9 +1,9 @@
-import httpx
 from typing import Union
+import httpx
 
 from .api import AlistApi, TMDBApi
 from .config import Config
-from .log import logger  # noqa: F401
+from .log import logger, HandleException  # noqa: F401
 from .models import ApiResponseModel, Formated_Variables, RenameTask
 from .output import Output, console
 from .utils import Tools
@@ -19,6 +19,9 @@ class Amr:
 
     """
 
+
+
+    @HandleException.catch_main_exceptions
     def __init__(self, config: Union[Config, str]):
         """
         初始化参数
@@ -48,6 +51,7 @@ class Amr:
             self.alist.login()
 
     # TAG: tv_rename_id
+    @HandleException.catch_main_exceptions
     def tv_rename_id(
         self,
         tv_id: str,
@@ -224,6 +228,7 @@ class Amr:
         return True
 
     # TAG: tv_rename_keyword
+    @HandleException.catch_main_exceptions
     def tv_rename_keyword(
         self,
         keyword: str,
@@ -259,6 +264,7 @@ class Amr:
         return True
 
     # TAG: movie_rename_id
+    @HandleException.catch_main_exceptions
     def movie_rename_id(
         self, movie_id: str, folder_path: str, folder_password=None
     ) -> bool:
@@ -395,6 +401,7 @@ class Amr:
         return True
 
     # TAG: movie_rename_keyword
+    @HandleException.catch_main_exceptions
     def movie_rename_keyword(
         self, keyword: str, folder_path: str, folder_password=None
     ) -> bool:

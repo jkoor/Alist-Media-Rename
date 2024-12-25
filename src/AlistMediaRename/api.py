@@ -153,9 +153,9 @@ class AlistApi:
 
         self._sync_client = sync_client or httpx.Client()
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_alist_login
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def login(self) -> dict:
         """
@@ -187,9 +187,9 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_alist_file_list
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def file_list(
         self,
@@ -250,7 +250,7 @@ class AlistApi:
         async def async_run(rename_list: list[RenameTask]) -> list[ApiResponseModel]:
             async_client = httpx.AsyncClient()
 
-            @HandleException.catch_exceptions
+            @HandleException.catch_api_exceptions
             @ApiResponse.alist_api_response
             async def rename_async(name: str, path: str) -> dict:
                 """
@@ -297,7 +297,7 @@ class AlistApi:
         """
 
         # @Message.output_alist_rename
-        @HandleException.catch_exceptions
+        @HandleException.catch_api_exceptions
         @ApiResponse.alist_api_response
         def rename(name: str, path: str) -> dict:
             """
@@ -328,7 +328,7 @@ class AlistApi:
         return result
 
     @Output.output_alist_move
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
         """
@@ -350,7 +350,7 @@ class AlistApi:
         return r.json()
 
     @Output.output_alist_mkdir
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def mkdir(self, path: str) -> dict:
         """
@@ -370,7 +370,7 @@ class AlistApi:
         return r.json()
 
     @Output.output_alist_remove
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def remove(self, path: str, names: list) -> dict:
         """
@@ -413,9 +413,9 @@ class TMDBApi:
 
         self._sync_client = sync_client or httpx.Client()
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_tv_info
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def tv_info(self, tv_id: str, language: str = "zh-CN") -> tuple:
         """
@@ -433,9 +433,9 @@ class TMDBApi:
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_search_tv
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def search_tv(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
@@ -454,9 +454,9 @@ class TMDBApi:
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_tv_season_info
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def tv_season_info(
         self, tv_id: str, season_number: int, language: str = "zh-CN"
@@ -477,9 +477,9 @@ class TMDBApi:
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_movie_info
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def movie_info(self, movie_id: str, language: str = "zh-CN") -> tuple:
         """
@@ -499,9 +499,9 @@ class TMDBApi:
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_search_movie
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def search_movie(self, keyword: str, language: str = "zh-CN") -> tuple:
         """

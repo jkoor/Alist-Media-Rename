@@ -1,5 +1,4 @@
 from functools import wraps
-import sys
 from typing import Any, Union, Callable
 from rich import box
 from rich.console import Console
@@ -11,6 +10,10 @@ from .utils import Tools
 
 
 console = Console()
+
+
+class UserExit(Exception):
+    pass
 
 
 class Message:
@@ -78,7 +81,7 @@ class Message:
 
     @staticmethod
     def exit():
-        sys.exit(0)
+        raise UserExit("用户主动退出")
 
     @staticmethod
     def question(message: str, printf: bool = True):
@@ -113,7 +116,8 @@ class Output:
             if login_result.success:
                 Message.success(f"主页: {self.url}")
             else:
-                Message.error(f"登录失败\t{login_result.error}")
+                # Message.error(f"登录失败\t{login_result.error}")
+                Message.error(f"登录失败: {self.url}")
             return login_result
 
         return wrapper
@@ -129,8 +133,11 @@ class Output:
             # 输出结果
             if not return_data.success:
                 Message.error(
-                    f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
+                    f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}"
                 )
+                # Message.error(
+                #     f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
+                # )
 
             # 返回请求结果
             return return_data
@@ -170,8 +177,11 @@ class Output:
 
             # 输出移动结果
             if not return_data.success:
+                # Message.error(
+                #     f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n   {return_data.error}"
+                # )
                 Message.error(
-                    f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n   {return_data.error}"
+                    f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}"
                 )
             else:
                 Message.success(
@@ -193,8 +203,11 @@ class Output:
 
             # 输出新建文件夹请求结果
             if not return_data.success:
+                # Message.error(
+                #     f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
+                # )
                 Message.error(
-                    f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
+                    f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}"
                 )
             else:
                 Message.success(
@@ -216,8 +229,11 @@ class Output:
 
             # 输出删除文件/文件夹请求结果
             if not return_data.success:
+                # Message.error(
+                #     f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
+                # )
                 Message.error(
-                    f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
+                    f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}"
                 )
             else:
                 for name in Tools.get_argument(2, "name", args, kwargs):
@@ -240,9 +256,10 @@ class Output:
 
             # 请求失败则输出失败信息
             if not return_data.success:
-                Message.error(
-                    f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\n   {return_data.error}"
-                )
+                # Message.error(
+                #     f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\n   {return_data.error}"
+                # )
+                Message.error(f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}")
                 return return_data
 
             # 格式化输出请求结果
@@ -281,15 +298,13 @@ class Output:
 
             # 请求失败则输出失败信息
             if not return_data.success:
+                # Message.error(
+                #     f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.error}"
+                # )
                 Message.error(
-                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.error}"
+                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}"
                 )
                 return return_data
-            # if not return_data.data["results"]:
-            #     Message.error(
-            #         f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n    未查找到相关剧集"
-            #     )
-            #     return return_data
 
             Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
             table = Table(box=box.SIMPLE)
@@ -318,24 +333,14 @@ class Output:
 
             # 请求失败则输出失败信息
             if not return_data.success:
+                # Message.error(
+                #     f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n   {return_data.error}"
+                # )
                 Message.error(
-                    f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n   {return_data.error}"
+                    f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季"
                 )
 
             return return_data
-
-            # # 格式化输出请求结果
-            # print(f"{Message.ColorStr.green('[✓]')} {return_data['name']}")
-            # print(f"{'序 号':<6}{'放映日期':<12}{'时 长':<10}{'标 题'}")
-            # print(f"{'----':<8}{'----------':<16}{'-----':<12}{'----------------'}")
-
-            # for episode in return_data["episodes"]:
-            #     print(
-            #         f"{episode['episode_number']:<8}{episode['air_date']:<16}{str(episode['runtime']) + 'min':<12}{episode['name']}"
-            #     )
-
-            # # 返回请求结果
-            # return return_data
 
         return wrapper
 
@@ -349,8 +354,11 @@ class Output:
 
             # 请求失败则输出失败信息
             if not return_data.success:
+                # Message.error(
+                #     f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}\n   {return_data.error}"
+                # )
                 Message.error(
-                    f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}\n   {return_data.error}"
+                    f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}"
                 )
                 return return_data
 
@@ -378,8 +386,11 @@ class Output:
 
             # 请求失败则输出失败信息
             if not return_data.success:
+                # Message.error(
+                #     f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data.error}"
+                # )
                 Message.error(
-                    f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data.error}"
+                    f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}"
                 )
                 return return_data
 
