@@ -74,6 +74,9 @@ class Message:
     def congratulation(message: str, printf: bool = True):
         if printf:
             console.print(f"\n:party_popper: {message}")
+        from .api import sync_client
+
+        sync_client.close()
         return f":party_popper: {message}"
 
     @staticmethod
@@ -456,7 +459,6 @@ class Output:
             return True
         else:
             Message.congratulation("See you!")
-            Message.exit()
             return False
 
     @staticmethod
@@ -476,7 +478,6 @@ class Output:
                 )
                 if number.lower() == "n":
                     Message.congratulation("See you!")
-                    Message.exit()
                 if number.isdigit() and 0 <= int(number) < len(result_list):
                     return int(number)
 
@@ -549,4 +550,3 @@ class Output:
 
         # 程序运行结束
         Message.congratulation("重命名完成")
-        Message.exit()

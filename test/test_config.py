@@ -1,7 +1,30 @@
 import filecmp
 import os
 from unittest import mock
+from ruamel.yaml import YAML
+import json
 from AlistMediaRename import Config
+from AlistMediaRename.models import Settings
+
+
+def test_model_matches_config():
+    """
+    测试 pydantic 模型与配置文件是否匹配
+    测试环境：模型与配置文件未同步更新
+    预期结果：模型与配置文件不匹配
+    测试步骤：
+    1. 读取默认配置文件
+    2. 将配置文件转换为 JSON 格式
+    3. 比较模型与配置文件
+    """
+
+    with open("src/AlistMediaRename/default.yaml", "r", encoding="utf-8") as file:
+        data = file.read()
+    config_file = json.dumps(YAML().load(data), separators=(",", ":"))
+
+    model = Settings().model_dump_json()
+
+    assert model == config_file, "模型与配置文件不匹配"
 
 
 @mock.patch("builtins.input")
