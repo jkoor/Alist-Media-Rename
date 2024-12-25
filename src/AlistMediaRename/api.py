@@ -10,9 +10,6 @@ from .output import Output
 from .utils import Tools
 
 
-sync_client = httpx.Client()
-
-
 # 封装接口返回信息
 class ApiResponse:
     """
@@ -130,7 +127,12 @@ class AlistApi:
     """
 
     def __init__(
-        self, url: str, user: str = "", password: str = "", totp_code: str = ""
+        self,
+        url: str,
+        user: str = "",
+        password: str = "",
+        totp_code: str = "",
+        sync_client=None,
     ):
         """
         初始化参数.
@@ -148,6 +150,8 @@ class AlistApi:
         self.totp_code = pyotp.TOTP(totp_code)
         self.token = ""
         self.timeout = 10
+
+        self._sync_client = sync_client or httpx.Client()
 
     @HandleException.stop_on_error
     @Output.output_alist_login
@@ -168,7 +172,7 @@ class AlistApi:
             "Password": self.password,
             "OtpCode": self.totp_code.now(),
         }
-        r = sync_client.post(url=post_url, data=post_datas, timeout=self.timeout)
+        r = self._sync_client.post(url=post_url, data=post_datas, timeout=self.timeout)
 
         if r.status_code != 200:
             return {"message": "Alist 网站连接失败", "code": r.status_code, "data": {}}
@@ -216,7 +220,7 @@ class AlistApi:
             "per_page": per_page,
             "page": page,
         }
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, params=post_params, timeout=self.timeout
         )
 
@@ -308,7 +312,7 @@ class AlistApi:
             post_url = self.url + "/api/fs/rename"
             post_headers = {"Authorization": self.token}
             post_json = {"name": name, "path": path}
-            r = sync_client.post(
+            r = self._sync_client.post(
                 url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
             )
 
@@ -339,7 +343,7 @@ class AlistApi:
         post_url = self.url + "/api/fs/move"
         post_headers = {"Authorization": self.token}
         post_json = {"src_dir": src_dir, "dst_dir": dst_dir, "names": names}
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
         # 获取请求结果
@@ -359,7 +363,7 @@ class AlistApi:
         post_url = self.url + "/api/fs/mkdir"
         post_headers = {"Authorization": self.token}
         post_json = {"path": path}
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
         # 获取请求结果
@@ -381,7 +385,7 @@ class AlistApi:
         post_url = self.url + "/api/fs/remove"
         post_headers = {"Authorization": self.token}
         post_json = {"dir": path, "names": names}
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
 
@@ -395,7 +399,7 @@ class TMDBApi:
     TMDB api官方说明文档(https://developers.themoviedb.org/3)
     """
 
-    def __init__(self, api_url: str, api_key: str):
+    def __init__(self, api_url: str, api_key: str, sync_client=None):
         """
         初始化参数
 
@@ -406,6 +410,8 @@ class TMDBApi:
         self.api_url = api_url
         self.api_key = api_key
         self.timeout = 10
+
+        self._sync_client = sync_client or httpx.Client()
 
     @HandleException.stop_on_error
     @Output.output_tmdb_tv_info
@@ -423,7 +429,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
         # 获取请求结果
         return r.json(), r.status_code
 
@@ -443,7 +449,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/tv"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code
@@ -466,7 +472,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}/season/{season_number}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code
@@ -488,7 +494,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/movie/{movie_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code
@@ -509,7 +515,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/movie"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code

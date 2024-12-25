@@ -1,3 +1,4 @@
+import httpx
 from typing import Union
 
 from .api import AlistApi, TMDBApi
@@ -24,6 +25,8 @@ class Amr:
         :param config: 配置参数
         """
 
+        self._sync_client = httpx.Client()
+
         self.config = config if type(config) is Config else Config(config)
 
         with console.status("登录Alist..."):
@@ -33,8 +36,13 @@ class Amr:
                 self.config.alist.user,
                 self.config.alist.password,
                 self.config.alist.totp,
+                self._sync_client,
             )
-            self.tmdb = TMDBApi(self.config.tmdb.api_url, self.config.tmdb.api_key)
+            self.tmdb = TMDBApi(
+                self.config.tmdb.api_url,
+                self.config.tmdb.api_key,
+                self._sync_client,
+            )
 
             # Step 0: 登录Alist
             self.alist.login()
@@ -147,7 +155,9 @@ class Amr:
         )
 
         # 获取父文件夹重命名标题
-        tv_folder_target_name = self.config.amr.tv_folder_name_format.format(**vars(fv_tv))
+        tv_folder_target_name = self.config.amr.tv_folder_name_format.format(
+            **vars(fv_tv)
+        )
 
         ### ------------------------ 4. 进行重命名操作 -------------------- ###
 
@@ -318,7 +328,9 @@ class Amr:
             "1",
         )
         # 获取父文件夹重命名标题
-        movie_folder_target_name = self.config.amr.movie_folder_name_format.format(**vars(fv_movie))
+        movie_folder_target_name = self.config.amr.movie_folder_name_format.format(
+            **vars(fv_movie)
+        )
 
         ### ------------------------ 4. 进行重命名操作 -------------------- ###
         # Step 4: 输出重命名文件信息

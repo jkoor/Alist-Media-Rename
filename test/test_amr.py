@@ -1,11 +1,12 @@
 import os
 from unittest import mock
+
+from AlistMediaRename import Amr, Config, logger
 from test.utils import TestUtils
 
 
 @mock.patch("builtins.input")
-def test_tv_rename_id(mocked_input):
-    from AlistMediaRename import Amr, Config, logger
+def test_tv_rename_id(mocked_input): 
 
     # 模拟用户输入
     mocked_input.side_effect = ["1", "y"]
@@ -32,7 +33,6 @@ def test_tv_rename_id(mocked_input):
 def test_tv_rename_keyword(mocked_input):
     # 模拟用户输入
     mocked_input.side_effect = ["0", "1", ""]
-    from AlistMediaRename import Amr, Config, logger
 
     # 初始化
     config = Config()
@@ -58,7 +58,6 @@ def test_tv_rename_keyword(mocked_input):
 def test_movie_rename_id(mocked_input):
     # 模拟用户输入
     mocked_input.side_effect = ["1", "y"]
-    from AlistMediaRename import Amr, Config, logger
 
     # 初始化
     config = Config()
@@ -84,7 +83,6 @@ def test_movie_rename_id(mocked_input):
 def test_movie_rename_keyword(mocked_input):
     # 模拟用户输入
     mocked_input.side_effect = ["3", "1", " ", ""]
-    from AlistMediaRename import Amr, Config, logger
 
     # 初始化
     config = Config()
