@@ -1,4 +1,4 @@
-从 The Movie Database(TMDb) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。
+从 The Movie Database(TMDB) 获取剧集/电影信息，并对 Alist 指定媒体文件重命名，便于播放器刮削识别剧集/电影。测试Kodi, Nplayer, Infuse均可正确识别媒体信息。
 
 ![](./tutorial.gif)
 
@@ -70,7 +70,7 @@ pip install .
 
 **获取 TMDb API 密钥**
 
-首次运行会要去输入 TMDb API 密钥， 用于获取 TMDb 电影/剧集信息，可前往 [TMDb 开发者网站](https://www.themoviedb.org/settings/api)免费申请。
+首次运行会要去输入 TMDB API 密钥， 用于获取 TMDB 电影/剧集信息，可前往 [TMDB 开发者网站](https://www.themoviedb.org/settings/api)免费申请。
 
 **Alist 2FA 验证（未开启可跳过）**
 
@@ -78,7 +78,7 @@ pip install .
 
 **基本命令**
 
-初始使用请按提示输入 Alist 网址、账号、密码、2FA 密钥以及 TMDb API 密钥，配置信息会保存在同目录下`config.yaml`文件中。
+初始使用请按提示输入 Alist 网址、账号、密码、2FA 密钥以及 TMDB API 密钥，配置信息会保存在同目录下`config.yaml`文件中。
 
 ```shell
 # 根据剧集关键字获取剧集信息，并对指定文件夹中的媒体文件重命名
@@ -113,7 +113,7 @@ amr -h
 
 **举个例子**
 
-TMDb 的剧集/电影 id 为对应网址中的数字，如剧集[《刀剑神域》](https://www.themoviedb.org/tv/45782)的 id 为 45782，电影《[刀剑神域：序列之争](https://www.themoviedb.org/movie/413594)》的 id 为 413594
+TMDB 的剧集/电影 id 为对应网址中的数字，如剧集[《刀剑神域》](https://www.themoviedb.org/tv/45782)的 id 为 45782，电影《[刀剑神域：序列之争](https://www.themoviedb.org/movie/413594)》的 id 为 413594
 
 剧集《刀剑神域》的视频及字幕文件在 Alist 网盘中路径为：*/阿里云盘/动漫/SAO/*
 
@@ -146,10 +146,10 @@ amr -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 
 | 参数           | 必填 |      默认       | 说明                           |
 | -------------- | :--: | :-------------: | ------------------------------ |
-| keyword        |  ☑   |                 | TMDb 搜索字段                  |
+| keyword        |  ☑   |                 | TMDB 搜索字段                  |
 | -d             |  ☑   |                 | Alist 文件夹路径               |
 | --folder / --no-folder |  |  | 是否对父文件夹进行重命名 |
-| -i, --id       |      |                 | 根据 TMDb id 获取剧集/电影信息 |
+| -i, --id       |      |                 | 根据 TMDB id 获取剧集/电影信息 |
 | -m, --movie    |      |                 | 查找电影信息，而不是剧集       |
 | -p, --password |      |     *None*      | Alist 文件夹访问密码           |
 | -n, --number   |      |                 | 指定集号进行重命名           |
@@ -189,13 +189,13 @@ amr = Amr(config)
 # 第二种实例化方法，从文件中读取配置
 amr = Amr("./config.yaml") # 从文件中读取配置，文件不存在则会自动创建
 
-# 根据电影id获取TMDb信息，并重命名‘dir’指定路径文件
+# 根据电影id获取TMDB信息，并重命名‘dir’指定路径文件
 amr.movie_rename_id('keyword', 'dir', 'password')
-# 根据电影关键词获取TMDb信息，并重命名‘dir’指定路径文件
+# 根据电影关键词获取TMDB信息，并重命名‘dir’指定路径文件
 amr.movie_rename_keyword('keyword', 'dir', 'password')
-# 根据剧集id获取TMDb信息，并重命名‘dir’指定路径文件
+# 根据剧集id获取TMDB信息，并重命名‘dir’指定路径文件
 amr.tv_rename_id('keyword', 'dir', 'password')
-# 根据剧集关键词获取TMDb信息，并重命名‘dir’指定路径文件
+# 根据剧集关键词获取TMDB信息，并重命名‘dir’指定路径文件
 amr.tv_rename_keyword('keyword', 'dir', 'password')
 
 ```
@@ -204,9 +204,9 @@ amr.tv_rename_keyword('keyword', 'dir', 'password')
 
 ## 最后
 
-- 本项目是受到了 GitHub 中一个获取TMDb信息并对本地文件重命名项目的启发：[wklchris/Media-Renamer](https://github.com/wklchris/Media-Renamer)
+- 本项目是受到了 GitHub 中一个获取TMDB信息并对本地文件重命名项目的启发：[wklchris/Media-Renamer](https://github.com/wklchris/Media-Renamer)
 
-- TMDb API 在短时间内频繁使用会限制使用，如出现此情况请稍后再试
+- TMDB API 在短时间内频繁使用会限制使用，如出现此情况请稍后再试
 
 - 欢迎邮件联系，一起交流探讨：oharcy@outlook.com
 

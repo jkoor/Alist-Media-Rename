@@ -1,8 +1,9 @@
 from typing import Union
+import httpx
 
 from .api import AlistApi, TMDBApi
 from .config import Config
-from .log import logger  # noqa: F401
+from .log import logger, HandleException  # noqa: F401
 from .models import ApiResponseModel, Formated_Variables, RenameTask
 from .output import Output, console
 from .utils import Tools
@@ -18,11 +19,16 @@ class Amr:
 
     """
 
+
+
+    @HandleException.catch_main_exceptions
     def __init__(self, config: Union[Config, str]):
         """
         初始化参数
         :param config: 配置参数
         """
+
+        self._sync_client = httpx.Client()
 
         self.config = config if type(config) is Config else Config(config)
 
@@ -33,13 +39,19 @@ class Amr:
                 self.config.alist.user,
                 self.config.alist.password,
                 self.config.alist.totp,
+                self._sync_client,
             )
-            self.tmdb = TMDBApi(self.config.tmdb.api_url, self.config.tmdb.api_key)
+            self.tmdb = TMDBApi(
+                self.config.tmdb.api_url,
+                self.config.tmdb.api_key,
+                self._sync_client,
+            )
 
             # Step 0: 登录Alist
             self.alist.login()
 
     # TAG: tv_rename_id
+    @HandleException.catch_main_exceptions
     def tv_rename_id(
         self,
         tv_id: str,
@@ -59,6 +71,8 @@ class Amr:
 
         # 确保路径以 / 开头并以 / 结尾
         folder_path = Tools.ensure_slash(folder_path)
+        # 确保 tv_id 为字符串
+        tv_id = str(tv_id)
 
         ### ------------------------ 获取文件列表 ------------------------ ####
         with console.status("获取文件列表..."):
@@ -100,6 +114,8 @@ class Amr:
             region=result_tv_info.data["origin_country"][0],
             rating=result_tv_info.data["vote_average"],
             season=result_tv_season_info.data["season_number"],
+            season_year=result_tv_season_info.data["air_date"][:4],
+            tmdb_id=tv_id,
         )
 
         # 创建包含源文件名以及目标文件名列表
@@ -143,7 +159,9 @@ class Amr:
         )
 
         # 获取父文件夹重命名标题
-        folder_target_name = self.config.amr.folder_name_format.format(**vars(fv_tv))
+        tv_folder_target_name = self.config.amr.tv_folder_name_format.format(
+            **vars(fv_tv)
+        )
 
         ### ------------------------ 4. 进行重命名操作 -------------------- ###
 
@@ -152,7 +170,7 @@ class Amr:
             video_rename_list,
             subtitle_rename_list,
             self.config.amr.media_folder_rename,
-            folder_target_name,
+            tv_folder_target_name,
             folder_path,
         )
 
@@ -172,13 +190,13 @@ class Amr:
             original_name = Tools.get_current_path(folder_path)
             if (
                 self.config.amr.media_folder_rename
-                and original_name != folder_target_name
+                and original_name != tv_folder_target_name
             ):
                 folder_count = 1
                 folder_rename_list: list[RenameTask] = [
                     RenameTask(
                         original_name=Tools.get_current_path(folder_path),
-                        target_name=folder_target_name,
+                        target_name=tv_folder_target_name,
                         folder_path=Tools.get_parent_path(folder_path),
                     )
                 ]
@@ -210,6 +228,7 @@ class Amr:
         return True
 
     # TAG: tv_rename_keyword
+    @HandleException.catch_main_exceptions
     def tv_rename_keyword(
         self,
         keyword: str,
@@ -245,6 +264,7 @@ class Amr:
         return True
 
     # TAG: movie_rename_id
+    @HandleException.catch_main_exceptions
     def movie_rename_id(
         self, movie_id: str, folder_path: str, folder_password=None
     ) -> bool:
@@ -259,6 +279,8 @@ class Amr:
 
         # 确保路径以 / 开头并以 / 结尾
         folder_path = Tools.ensure_slash(folder_path)
+        # 确保 movie_id 为字符串
+        movie_id = str(movie_id)
 
         ### ------------------------ 1. 获取文件列表 -------------------- ###
         with console.status("获取文件列表..."):
@@ -289,6 +311,7 @@ class Amr:
             language=result_movie_info.data["original_language"],
             region=result_movie_info.data["origin_country"][0],
             rating=result_movie_info.data["vote_average"],
+            tmdb_id=movie_id,
         )
 
         # 创建包含源文件名以及目标文件名列表
@@ -311,7 +334,9 @@ class Amr:
             "1",
         )
         # 获取父文件夹重命名标题
-        folder_target_name = self.config.amr.folder_name_format.format(**vars(fv_movie))
+        movie_folder_target_name = self.config.amr.movie_folder_name_format.format(
+            **vars(fv_movie)
+        )
 
         ### ------------------------ 4. 进行重命名操作 -------------------- ###
         # Step 4: 输出重命名文件信息
@@ -319,7 +344,7 @@ class Amr:
             video_rename_list,
             subtitle_rename_list,
             self.config.amr.media_folder_rename,
-            folder_target_name,
+            movie_folder_target_name,
             folder_path,
         )
 
@@ -339,13 +364,13 @@ class Amr:
             original_name = Tools.get_current_path(folder_path)
             if (
                 self.config.amr.media_folder_rename
-                and original_name != folder_target_name
+                and original_name != movie_folder_target_name
             ):
                 folder_count = 1
                 folder_rename_list: list[RenameTask] = [
                     RenameTask(
                         original_name=original_name,
-                        target_name=folder_target_name,
+                        target_name=movie_folder_target_name,
                         folder_path=Tools.get_parent_path(folder_path),
                     )
                 ]
@@ -376,6 +401,7 @@ class Amr:
         return True
 
     # TAG: movie_rename_keyword
+    @HandleException.catch_main_exceptions
     def movie_rename_keyword(
         self, keyword: str, folder_path: str, folder_password=None
     ) -> bool:

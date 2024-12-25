@@ -36,12 +36,14 @@ class AmrConfig(BaseModel):
     rename_by_async: bool = True
     # 是否重命名父文件夹
     media_folder_rename: bool = True
-    # 媒体文件夹命名格式
-    folder_name_format: str = "{name} ({year})"
     # 电影文件命名格式
     movie_name_format: str = "{name} ({year})"
+    # 电影父文件夹命名格式
+    movie_folder_name_format: str = "{name} ({year})"
     # 剧集文件命名格式
     tv_name_format: str = "{name}-S{season:0>2}E{episode:0>2}.{title}"
+    # 剧集父文件夹命名格式
+    tv_folder_name_format: str = "{name} ({year})"
     # 视频文件匹配正则表达式
     video_regex_pattern: str = r"(?i).*\.(avi|flv|wmv|mov|mp4|mkv|rm|rmvb)$"
     # 字幕文件匹配正则表达式
@@ -54,6 +56,7 @@ class Settings(BaseModel):
     alist: AlistConfig = AlistConfig()
     tmdb: TmdbConfig = TmdbConfig()
     amr: AmrConfig = AmrConfig()
+    version: int = 1
 
 
 class Formated_Variables:
@@ -69,6 +72,7 @@ class Formated_Variables:
         language: str  # 语言
         region: str  # 地区
         rating: float  # 评分
+        tmdb_id: str  # TMDB ID
 
     class tv(BaseModel):
         """剧集重命名格式变量"""
@@ -81,6 +85,8 @@ class Formated_Variables:
         region: str  # 地区
         rating: float  # 剧集评分
         season: int  # 剧集季度
+        season_year: str  # 季度年份
+        tmdb_id: str  # TMDB ID
 
     class episode(BaseModel):
         """剧集重命名格式变量"""
@@ -94,9 +100,9 @@ class Formated_Variables:
 class RenameTask(BaseModel):
     """重命名任务"""
 
-    original_name: str = '' # 原始文件名
-    target_name: str = '' # 目标文件名
-    folder_path: str = '' # 文件夹路径
+    original_name: str = ""  # 原始文件名
+    target_name: str = ""  # 目标文件名
+    folder_path: str = ""  # 文件夹路径
 
 
 class ApiResponseModel(BaseModel):

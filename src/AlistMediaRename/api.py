@@ -10,9 +10,6 @@ from .output import Output
 from .utils import Tools
 
 
-sync_client = httpx.Client()
-
-
 # 封装接口返回信息
 class ApiResponse:
     """
@@ -130,7 +127,12 @@ class AlistApi:
     """
 
     def __init__(
-        self, url: str, user: str = "", password: str = "", totp_code: str = ""
+        self,
+        url: str,
+        user: str = "",
+        password: str = "",
+        totp_code: str = "",
+        sync_client=None,
     ):
         """
         初始化参数.
@@ -149,9 +151,11 @@ class AlistApi:
         self.token = ""
         self.timeout = 10
 
-    @HandleException.stop_on_error
+        self._sync_client = sync_client or httpx.Client()
+
+    @HandleException.raise_error
     @Output.output_alist_login
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def login(self) -> dict:
         """
@@ -168,7 +172,7 @@ class AlistApi:
             "Password": self.password,
             "OtpCode": self.totp_code.now(),
         }
-        r = sync_client.post(url=post_url, data=post_datas, timeout=self.timeout)
+        r = self._sync_client.post(url=post_url, data=post_datas, timeout=self.timeout)
 
         if r.status_code != 200:
             return {"message": "Alist 网站连接失败", "code": r.status_code, "data": {}}
@@ -183,9 +187,9 @@ class AlistApi:
         # 返回请求结果
         return return_data
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_alist_file_list
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def file_list(
         self,
@@ -216,7 +220,7 @@ class AlistApi:
             "per_page": per_page,
             "page": page,
         }
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, params=post_params, timeout=self.timeout
         )
 
@@ -246,7 +250,7 @@ class AlistApi:
         async def async_run(rename_list: list[RenameTask]) -> list[ApiResponseModel]:
             async_client = httpx.AsyncClient()
 
-            @HandleException.catch_exceptions
+            @HandleException.catch_api_exceptions
             @ApiResponse.alist_api_response
             async def rename_async(name: str, path: str) -> dict:
                 """
@@ -293,7 +297,7 @@ class AlistApi:
         """
 
         # @Message.output_alist_rename
-        @HandleException.catch_exceptions
+        @HandleException.catch_api_exceptions
         @ApiResponse.alist_api_response
         def rename(name: str, path: str) -> dict:
             """
@@ -308,7 +312,7 @@ class AlistApi:
             post_url = self.url + "/api/fs/rename"
             post_headers = {"Authorization": self.token}
             post_json = {"name": name, "path": path}
-            r = sync_client.post(
+            r = self._sync_client.post(
                 url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
             )
 
@@ -324,7 +328,7 @@ class AlistApi:
         return result
 
     @Output.output_alist_move
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
         """
@@ -339,14 +343,14 @@ class AlistApi:
         post_url = self.url + "/api/fs/move"
         post_headers = {"Authorization": self.token}
         post_json = {"src_dir": src_dir, "dst_dir": dst_dir, "names": names}
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
         # 获取请求结果
         return r.json()
 
     @Output.output_alist_mkdir
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def mkdir(self, path: str) -> dict:
         """
@@ -359,14 +363,14 @@ class AlistApi:
         post_url = self.url + "/api/fs/mkdir"
         post_headers = {"Authorization": self.token}
         post_json = {"path": path}
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
         # 获取请求结果
         return r.json()
 
     @Output.output_alist_remove
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.alist_api_response
     def remove(self, path: str, names: list) -> dict:
         """
@@ -381,7 +385,7 @@ class AlistApi:
         post_url = self.url + "/api/fs/remove"
         post_headers = {"Authorization": self.token}
         post_json = {"dir": path, "names": names}
-        r = sync_client.post(
+        r = self._sync_client.post(
             url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
         )
 
@@ -395,7 +399,7 @@ class TMDBApi:
     TMDB api官方说明文档(https://developers.themoviedb.org/3)
     """
 
-    def __init__(self, api_url: str, api_key: str):
+    def __init__(self, api_url: str, api_key: str, sync_client=None):
         """
         初始化参数
 
@@ -407,9 +411,11 @@ class TMDBApi:
         self.api_key = api_key
         self.timeout = 10
 
-    @HandleException.stop_on_error
+        self._sync_client = sync_client or httpx.Client()
+
+    @HandleException.raise_error
     @Output.output_tmdb_tv_info
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def tv_info(self, tv_id: str, language: str = "zh-CN") -> tuple:
         """
@@ -423,13 +429,13 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_search_tv
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def search_tv(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
@@ -443,14 +449,14 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/tv"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_tv_season_info
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def tv_season_info(
         self, tv_id: str, season_number: int, language: str = "zh-CN"
@@ -466,14 +472,14 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}/season/{season_number}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_movie_info
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def movie_info(self, movie_id: str, language: str = "zh-CN") -> tuple:
         """
@@ -488,14 +494,14 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/movie/{movie_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code
 
-    @HandleException.stop_on_error
+    @HandleException.raise_error
     @Output.output_tmdb_search_movie
-    @HandleException.catch_exceptions
+    @HandleException.catch_api_exceptions
     @ApiResponse.tmdb_api_response
     def search_movie(self, keyword: str, language: str = "zh-CN") -> tuple:
         """
@@ -509,7 +515,7 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/movie"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
 
         # 获取请求结果
         return r.json(), r.status_code

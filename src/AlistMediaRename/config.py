@@ -52,7 +52,11 @@ class Config:
         """保存配置"""
 
         self._yaml.preserve_quotes = True
-        with importlib.resources.files("AlistMediaRename").joinpath("default.yaml").open("r", encoding="utf-8") as f:
+        with (
+            importlib.resources.files("AlistMediaRename")
+            .joinpath("default.yaml")
+            .open("r", encoding="utf-8") as f
+        ):
             default_config = self._yaml.load(f)
 
         # 更新默认配置
@@ -82,6 +86,9 @@ class Config:
         config_data = self._yaml.load(data)
         # 验证配置文件
         self.settings = Settings.model_validate(config_data)
+        if self.settings.version != config_data.get("version", 0):
+            Message.warning("配置文件版本不匹配，已更新配置文件")
+            self.save(filepath, output=False)
 
         if output:
             Message.success(f"配置文件加载路径: {filepath}")
