@@ -20,19 +20,22 @@ class Message:
     @staticmethod
     def config_input():
         url = Prompt.ask(
-            Message.question("请输入Alist地址"), default="http://127.0.0.1:5244"
+            Message.question("请输入Alist地址", printf=False),
+            default="http://127.0.0.1:5244",
         )
-        user = Prompt.ask(Message.question("请输入账号"))
-        password = Prompt.ask(Message.question("请输入登录密码"))
+        user = Prompt.ask(Message.question("请输入账号", printf=False))
+        password = Prompt.ask(Message.question("请输入登录密码", printf=False))
         totp = Prompt.ask(
             Message.question(
-                "请输入二次验证密钥(base64加密密钥,非6位数字验证码), 未设置请跳过"
+                "请输入二次验证密钥(base64加密密钥,非6位数字验证码), 未设置请跳过",
+                printf=False,
             ),
             default="",
         )
         api_key = Prompt.ask(
             Message.question(
-                "请输入TMDB API密钥，用于从TMDB获取剧集/电影信息\t申请链接: https://www.themoviedb.org/settings/api\n"
+                "请输入TMDB API密钥，用于从TMDB获取剧集/电影信息\t申请链接: https://www.themoviedb.org/settings/api\n",
+                printf=False,
             )
         )
         return {

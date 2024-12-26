@@ -19,8 +19,6 @@ class Amr:
 
     """
 
-
-
     @HandleException.catch_main_exceptions
     def __init__(self, config: Union[Config, str]):
         """

@@ -179,11 +179,13 @@ class AlistApi:
 
         return_data = r.json()
 
+        if return_data["data"] is None:
+            return_data["data"] = {}
+
         if return_data["message"] == "success":
             self.token = return_data["data"]["token"]
-
-        # 隐藏Token信息
-        return_data["data"]["token"] = "********"
+            # 隐藏Token信息
+            return_data["data"]["token"] = "********"
         # 返回请求结果
         return return_data
 
