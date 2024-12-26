@@ -55,4 +55,5 @@ jobs:
             build/*.exe
             build/*.bin
             build/*.app/**/*
+            build/amr
           include-hidden-files: true
