@@ -44,7 +44,6 @@ jobs:
           nuitka-version: main
           script-name: cli
           mode: onefile
-          standalone: True
           include-package-data: AlistMediaRename:*.yaml
           no-deployment-flag: self-execution
 
