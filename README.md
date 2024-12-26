@@ -31,7 +31,8 @@ pip install AlistMediaRename
 pip install --upgrade AlistMediaRename
 ```
 
-**使用`pipx`安装**
+**使用`pipx`安装 （推荐）**
+https://pipx.pypa.io/stable/installation/
 
 ```shell
 # 请确保已安装 pipx
@@ -42,8 +43,8 @@ pipx install AlistMediaRename
 pipx upgrade AlistMediaRename
 ```
 
-**使用`uv`安装**
-
+**使用`uv`安装 （推荐）**
+https://docs.astral.sh/uv/
 ```shell
 # 请确保已安装 uv
 # uv 可以隔离安装，不对全局 Python 造成污染
@@ -64,7 +65,18 @@ cd Alist-Media-Rename
 pip install .
 ```
 
+**二进制文件独立运行**
 
+```shell
+# 使用打包后的程序，不依赖 Python 环境
+# 可能会存在一些问题，不建议作为首选项
+# 1. 前往 Releases 下载对应系统的程序，并解压
+# 2. Windows 环境
+.\amr -h
+# 3. Linux 环境
+chmod +x amr
+./amr -h
+```
 
 ## 快速开始
 
