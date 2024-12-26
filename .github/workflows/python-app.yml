@@ -16,7 +16,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-20.04, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -45,6 +45,7 @@ jobs:
           mode: onefile
           include-package-data: AlistMediaRename:*.yaml
           no-deployment-flag: self-execution
+          output-filename: amr
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
