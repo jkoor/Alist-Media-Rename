@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.1.5] - 2024-12-26
+### Added
+- 增加二进制文件，便于无Python环境用户使用，支持 Windows Linux 平台
+### Fixed
+- 修复提示用户输入配置时重复询问的bug
+
 ## [3.1.4] - 2024-12-25
 ### Added
 - 增加`season_year`, `tmdb_id`重命名变量
