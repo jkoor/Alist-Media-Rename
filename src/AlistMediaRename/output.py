@@ -1,12 +1,11 @@
 from functools import wraps
-from typing import Any, Union, Callable
+from typing import Callable, Union
 from rich import box
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
 from .models import ApiResponseModel, RenameTask
-from .utils import Tools
 
 
 console = Console()
@@ -14,6 +13,21 @@ console = Console()
 
 class UserExit(Exception):
     pass
+
+
+class Tools:
+    """
+    工具函数类
+    """
+
+    @staticmethod
+    def get_argument(
+        arg_index: int, kwarg_name: str, args: Union[list, tuple], kwargs: dict
+    ) -> str:
+        """获取参数"""
+        if len(args) > arg_index:
+            return args[arg_index]
+        return kwargs[kwarg_name]
 
 
 class Message:
@@ -419,9 +433,8 @@ class Output:
     def print_rename_info(
         video_rename_list: list[RenameTask],
         subtitle_rename_list: list[RenameTask],
+        folder_rename_list: list[RenameTask],
         folder_rename: bool,
-        renamed_folder_title: Union[str, None],
-        folder_path: str,
     ):
         """打印重命名信息"""
         if len(video_rename_list) > 0:
@@ -452,7 +465,7 @@ class Output:
             console.print(table)
         if folder_rename:
             Message.info(
-                f"文件夹重命名: [grey53]{folder_path.split('/')[-2]}[/grey53] [grey70]->[/grey70] {renamed_folder_title}"
+                f"文件夹重命名: [grey53]{folder_rename_list[0].original_name}[/grey53] [grey70]->[/grey70] {folder_rename_list[0].target_name}"
             )
 
     @staticmethod
@@ -471,10 +484,10 @@ class Output:
             return False
 
     @staticmethod
-    def select_number(result_list: list[Any]) -> int:
+    def select_number(length: int) -> int:
         """根据查询结果选择序号"""
         # 若查找结果只有一项，则无需选择，直接进行下一步
-        if len(result_list) == 1:
+        if length == 1:
             return 0
         else:
             while True:
@@ -488,7 +501,7 @@ class Output:
                 if number.lower() == "n":
                     Message.congratulation("See you!")
                     Message.exit()
-                if number.isdigit() and 0 <= int(number) < len(result_list):
+                if number.isdigit() and 0 <= int(number) < length:
                     return int(number)
 
     @staticmethod

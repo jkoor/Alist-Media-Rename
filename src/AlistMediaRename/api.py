@@ -7,7 +7,6 @@ from typing import Callable
 from .models import ApiResponseModel, RenameTask
 from .log import HandleException
 from .output import Output
-from .utils import Tools
 
 
 # 封装接口返回信息
@@ -280,8 +279,8 @@ class AlistApi:
             async with async_client:
                 tasks = []
                 for file in rename_list:
-                    name = Tools.replace_illegal_char(file.target_name)
-                    path = file.folder_path + file.original_name
+                    name = file.target_name
+                    path = str(file.folder_path) + file.original_name
                     tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
 
                 results: list[ApiResponseModel] = await asyncio.gather(*tasks)
@@ -323,8 +322,8 @@ class AlistApi:
 
         result = []
         for file in rename_list:
-            name = Tools.replace_illegal_char(file.target_name)
-            path = file.folder_path + file.original_name
+            name = file.target_name
+            path = str(file.folder_path) + file.original_name
             result.append(rename(name, path))
 
         return result
