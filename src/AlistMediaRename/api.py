@@ -1,12 +1,54 @@
 import asyncio
 from functools import wraps
-import httpx
-import pyotp
+import threading
 from typing import Callable
 
-from .models import ApiResponseModel, RenameTask
+import httpx
+import pyotp
+
+from .models import ApiResponse, RenameTask
 from .log import HandleException
 from .output import Output
+
+
+class Utils:
+    """
+    工具函数
+    """
+
+    # 创建异步客户端
+    client = httpx.AsyncClient()
+
+    # 使用 threading.local() 来存储每个线程/任务的装饰器状态
+    local = threading.local()
+
+    @staticmethod
+    # 装饰器：自动执行异步请求（可以关闭）
+    def async_call(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # 使用线程局部变量来检查是否启用装饰器
+            if getattr(Utils.local, "decorator_enabled", True):  # 默认为 True
+                return asyncio.run(func(*args))
+
+            else:
+                return func(*args, **kwargs)  # 直接执行异步函数
+
+        return wrapper
+
+    # 异步框架：接收多个请求函数并并行执行
+    def async_requests(*funcs):
+        async def requests(*funcs):
+            # 关闭装饰器
+            Utils.local.decorator_enabled = False  # 关闭装饰器
+            tasks = []
+            for func in funcs:
+                tasks.append(func)  # 将每个请求函数添加为任务
+            results = await asyncio.gather(*tasks)  # 并行执行所有任务
+            return results
+
+        # 并行执行所有任务
+        return asyncio.run(requests(*funcs))
 
 
 # 封装接口返回信息
@@ -16,55 +58,55 @@ class ApiResponse:
     """
 
     @staticmethod
-    def alist_api_response(func) -> Callable[..., ApiResponseModel]:
+    def alist_api_response(func) -> Callable[..., ApiResponse]:
         """
         封装Alist api返回信息.
         """
 
         @wraps(func)
-        async def async_wrapper(*args, **kwargs) -> ApiResponseModel:
+        async def async_wrapper(*args, **kwargs) -> ApiResponse:
             rawdata = await func(*args, **kwargs)
 
             if rawdata["message"] == "success":
-                return ApiResponseModel(
+                return ApiResponse(
                     success=True,
                     status_code=rawdata["code"],
                     error="",
-                    data=rawdata["data"] if rawdata["data"] else {},
+                    response=rawdata["data"] if rawdata["data"] else {},
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,
                 )
-            return ApiResponseModel(
+            return ApiResponse(
                 success=False,
                 status_code=rawdata["code"],
                 error=rawdata["message"],
-                data=rawdata["data"] if rawdata["data"] else {},
+                response=rawdata["data"] if rawdata["data"] else {},
                 function=func.__qualname__,
                 args=args,
                 kwargs=kwargs,
             )
 
         @wraps(func)
-        def sync_wrapper(*args, **kwargs) -> ApiResponseModel:
+        def sync_wrapper(*args, **kwargs) -> ApiResponse:
             rawdata = func(*args, **kwargs)
 
             if rawdata["message"] == "success":
-                return ApiResponseModel(
+                return ApiResponse(
                     success=True,
                     status_code=rawdata["code"],
                     error="",
-                    data=rawdata["data"] if rawdata["data"] else {},
+                    response=rawdata["data"] if rawdata["data"] else {},
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,
                 )
             else:
-                return ApiResponseModel(
+                return ApiResponse(
                     success=False,
                     status_code=rawdata["code"],
                     error=rawdata["message"],
-                    data=rawdata["data"] if rawdata["data"] else {},
+                    response=rawdata["data"] if rawdata["data"] else {},
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,
@@ -76,41 +118,41 @@ class ApiResponse:
             return sync_wrapper
 
     @staticmethod
-    def tmdb_api_response(func) -> Callable[..., ApiResponseModel]:
+    def tmdb_api_response(func) -> Callable[..., ApiResponse]:
         """
         封装TMDB api返回信息装饰器.
         """
 
         @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
+        def wrapper(*args, **kwargs) -> ApiResponse:
             rawdata, status_code = func(*args, **kwargs)
 
             if status_code == 200:
                 if "results" in rawdata and rawdata["results"] == []:
-                    return ApiResponseModel(
+                    return ApiResponse(
                         success=False,
                         status_code=status_code,
                         error="指定关键词未查找到相关信息",
-                        data=rawdata,
+                        response=rawdata,
                         function=func.__qualname__,
                         args=args,
                         kwargs=kwargs,
                     )
-                return ApiResponseModel(
+                return ApiResponse(
                     success=True,
                     status_code=status_code,
                     error="",
-                    data=rawdata,
+                    response=rawdata,
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,
                 )
             else:
-                return ApiResponseModel(
+                return ApiResponse(
                     success=False,
                     status_code=status_code,
                     error=rawdata.get("status_message", ""),
-                    data=rawdata,
+                    response=rawdata,
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,
@@ -149,14 +191,15 @@ class AlistApi:
         self.totp_code = pyotp.TOTP(totp_code)
         self.token = ""
         self.timeout = 10
-
+        self._client = Utils.client
         self._sync_client = sync_client or httpx.Client()
 
     @HandleException.raise_error
     @Output.output_alist_login
     @HandleException.catch_api_exceptions
+    @Utils.async_call
     @ApiResponse.alist_api_response
-    def login(self) -> dict:
+    async def login(self) -> dict:
         """
         获取登录Token
 
@@ -171,7 +214,7 @@ class AlistApi:
             "Password": self.password,
             "OtpCode": self.totp_code.now(),
         }
-        r = self._sync_client.post(url=post_url, data=post_datas, timeout=self.timeout)
+        r = await self._client.post(url=post_url, data=post_datas, timeout=self.timeout)
 
         if r.status_code != 200:
             return {"message": "Alist 网站连接失败", "code": r.status_code, "data": {}}
@@ -230,7 +273,7 @@ class AlistApi:
 
     def rename_list(
         self, rename_list: list[RenameTask], async_mode: bool = True
-    ) -> list[ApiResponseModel]:
+    ) -> list[ApiResponse]:
         """
         批量重命名文件.
 
@@ -247,8 +290,8 @@ class AlistApi:
 
     def rename_list_async(
         self, rename_list: list[RenameTask]
-    ) -> list[ApiResponseModel]:
-        async def async_run(rename_list: list[RenameTask]) -> list[ApiResponseModel]:
+    ) -> list[ApiResponse]:
+        async def async_run(rename_list: list[RenameTask]) -> list[ApiResponse]:
             async_client = httpx.AsyncClient()
 
             @HandleException.catch_api_exceptions
@@ -283,12 +326,12 @@ class AlistApi:
                     path = str(file.folder_path) + file.original_name
                     tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
 
-                results: list[ApiResponseModel] = await asyncio.gather(*tasks)
+                results: list[ApiResponse] = await asyncio.gather(*tasks)
             return results
 
         return asyncio.run(async_run(rename_list))
 
-    def rename_list_sync(self, rename_list: list[RenameTask]) -> list[ApiResponseModel]:
+    def rename_list_sync(self, rename_list: list[RenameTask]) -> list[ApiResponse]:
         """
         批量重命名文件.
 

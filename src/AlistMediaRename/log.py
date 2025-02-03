@@ -1,7 +1,7 @@
 import asyncio
 from functools import wraps
 from typing import Callable
-from .models import ApiResponseModel
+from .models import ApiResponse
 from .output import console, UserExit
 
 
@@ -9,7 +9,7 @@ class Logger:
     _instance = None
     debug_mode = False
     verbose_mode = False
-    log: list[ApiResponseModel] = []
+    log: list[ApiResponse] = []
 
     def __new__(cls):
         if cls._instance is None:
@@ -31,12 +31,12 @@ class HandleException:
     """
 
     @staticmethod
-    def raise_error(func) -> Callable[..., ApiResponseModel]:
+    def raise_error(func) -> Callable[..., ApiResponse]:
         """在错误时停止"""
 
         @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
-            result: ApiResponseModel = func(*args, **kwargs)
+        def wrapper(*args, **kwargs) -> ApiResponse:
+            result: ApiResponse = func(*args, **kwargs)
             if not result.success:
                 console.print(result.model_dump()) if not logger.verbose_mode else None
                 raise ApiResponseError(result.error)
@@ -45,13 +45,13 @@ class HandleException:
         return wrapper
 
     @staticmethod
-    def catch_api_exceptions(func) -> Callable[..., ApiResponseModel]:
+    def catch_api_exceptions(func) -> Callable[..., ApiResponse]:
         """
         捕获函数异常
         """
 
         @wraps(func)
-        async def async_wrapper(*args, **kwargs) -> ApiResponseModel:
+        async def async_wrapper(*args, **kwargs) -> ApiResponse:
             # 捕获错误
             try:
                 result = await func(*args, **kwargs)
@@ -62,11 +62,11 @@ class HandleException:
             except Exception as e:
                 if logger.debug_mode:
                     raise e
-                result = ApiResponseModel(
+                result = ApiResponse(
                     success=False,
                     status_code=-1,
                     error=str(e),
-                    data={},
+                    response={},
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,
@@ -77,7 +77,7 @@ class HandleException:
                 return result
 
         @wraps(func)
-        def sync_wrapper(*args, **kwargs) -> ApiResponseModel:
+        def sync_wrapper(*args, **kwargs) -> ApiResponse:
             # 捕获错误
 
             try:
@@ -89,11 +89,11 @@ class HandleException:
             except Exception as e:
                 if logger.debug_mode:
                     raise e
-                result = ApiResponseModel(
+                result = ApiResponse(
                     success=False,
                     status_code=-1,
                     error=str(e),
-                    data={},
+                    response={},
                     function=func.__qualname__,
                     args=args,
                     kwargs=kwargs,

@@ -1,33 +1,21 @@
-from functools import wraps
-from typing import Callable, Union
+from typing import Callable
 from rich import box
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
-from .models import ApiResponse, RenameTask
+from .models import RenameTask, ApiResponse
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .api_copy import ApiTask
 
 console = Console()
 
 
 class UserExit(Exception):
     pass
-
-
-class Utils:
-    """
-    工具函数类
-    """
-
-    @staticmethod
-    def get_argument(
-        arg_index: int, kwarg_name: str, args: Union[list, tuple], kwargs: dict
-    ) -> str:
-        """获取参数"""
-        if len(args) > arg_index:
-            return args[arg_index]
-        return kwargs[kwarg_name]
 
 
 class Message:
@@ -116,175 +104,131 @@ class Message:
         return t
 
 
-class Output:
+class OutputParser:
     """打印消息类"""
 
     @staticmethod
-    def output_alist_login(func) -> Callable[..., ApiResponse]:
+    def parser(type: str) -> Callable[..., None]:
+        """设置解析器"""
+
+        PARSER_MAP = {
+            "login": OutputParser.output_alist_login,
+            "file_list": OutputParser.output_alist_file_list,
+            "rename": OutputParser.output_alist_rename,
+            "move": OutputParser.output_alist_move,
+            "mkdir": OutputParser.output_alist_mkdir,
+            "remove": OutputParser.output_alist_remove,
+            "tv_info": OutputParser.output_tmdb_tv_info,
+            "search_tv": OutputParser.output_tmdb_search_tv,
+            "tv_season_info": OutputParser.output_tmdb_tv_season_info,
+            "movie_info": OutputParser.output_tmdb_movie_info,
+            "search_movie": OutputParser.output_tmdb_search_movie,
+        }
+
+        if type in PARSER_MAP:
+            return PARSER_MAP[type]
+        else:
+            raise ValueError(f"OutputParser '{type}' not found")
+
+    @staticmethod
+    def slient_output(api_task: "ApiTask") -> None:
+        """静默输出"""
+        pass
+
+    @staticmethod
+    def default_output(api_task: "ApiTask") -> None:
+        """默认输出"""
+
+        # 输出请求结果
+        if api_task.response.success:
+            Message.success(f"请求成功: {api_task.args}")
+        else:
+            Message.error(f"请求失败: {api_task.args}\n   {api_task.response.error}")
+
+    @staticmethod
+    def output_alist_login(api_task: "ApiTask") -> None:
         """
         输出登录状态信息
         """
 
-        @wraps(func)
-        def wrapper(self, *args, **kwargs) -> ApiResponse:
-            login_result: ApiResponse = func(self, *args, **kwargs)
-
-            # 输出获取Token结果
-            if login_result.success:
-                Message.success(f"主页: {self.url}")
-            else:
-                # Message.error(f"登录失败\t{login_result.error}")
-                Message.error(f"登录失败: {self.url}")
-            return login_result
-
-        return wrapper
+        # 输出获取Token结果
+        if api_task.response.success:
+            Message.success("登陆成功")
+        else:
+            Message.error("登录失败")
 
     @staticmethod
-    def output_alist_file_list(func) -> Callable[..., ApiResponse]:
+    def output_alist_file_list(api_task: "ApiTask") -> None:
         """输出文件信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 输出结果
-            if not return_data.success:
-                Message.error(
-                    f"获取文件列表失败: {Utils.get_argument(1, 'path', args, kwargs)}"
-                )
-                # Message.error(
-                #     f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
-                # )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        # 输出结果
+        if not api_task.response.success:
+            Message.error(
+                f"获取文件列表失败: {api_task.args.get('path')}\n   {api_task.response.error}"
+            )
 
     @staticmethod
-    def output_alist_rename(func):
+    def output_alist_rename(api_task: "ApiTask") -> None:
         """输出重命名信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
-
-            # 输出重命名结果
-            # if return_data["message"] != "success":
-            #     Message.error(
-            #         f"重命名失败: {Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}\n{return_data.error}"
-            #     )
-            # else:
-            #     Message.success(
-            #         f"重命名路径:{Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}"
-            #     )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        pass
+        # 输出重命名结果
+        if not api_task.response.success:
+            Message.error(
+                f"重命名失败: {api_task.args.get('path', '').split('/')[-1]} -> {api_task.args.get('name')}"
+            )
+        else:
+            Message.success(
+                f"重命名路径: {api_task.args.get('path', '').split('/')[-1]} -> {api_task.args.get('name')}"
+            )
 
     @staticmethod
-    def output_alist_move(func) -> Callable[..., ApiResponse]:
+    def output_alist_move(api_task: "ApiTask") -> None:
         """输出文件移动信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 输出移动结果
-            if not return_data.success:
-                # Message.error(
-                #     f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"移动失败: {Utils.get_argument(2, 'src_dir', args, kwargs)} -> {Utils.get_argument(3, 'dst_dir', args, kwargs)}"
-                )
-            else:
-                Message.success(
-                    f"移动路径: {Utils.get_argument(2, 'src_dir', args, kwargs)} -> {Utils.get_argument(3, 'dst_dir', args, kwargs)}"
-                )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        # 输出移动结果
+        if api_task.response.success:
+            Message.success(
+                f"移动路径: {api_task.args.get('src_dir')} -> {api_task.args.get('dst_dir')}"
+            )
+        else:
+            Message.error(
+                f"移动失败: {api_task.args.get('src_dir')} -> {api_task.args.get('dst_dir')}"
+            )
 
     @staticmethod
-    def output_alist_mkdir(func) -> Callable[..., ApiResponse]:
+    def output_alist_mkdir(api_task: "ApiTask") -> None:
         """输出新建文件/文件夹信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 输出新建文件夹请求结果
-            if not return_data.success:
-                # Message.error(
-                #     f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"文件夹创建失败: {Utils.get_argument(1, 'path', args, kwargs)}"
-                )
-            else:
-                Message.success(
-                    f"文件夹创建路径: {Utils.get_argument(1, 'path', args, kwargs)}"
-                )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        # 输出新建文件夹请求结果
+        if api_task.response.success:
+            Message.success(f"文件夹创建路径: {api_task.args.get('path')}")
+        else:
+            Message.error(f"文件夹创建失败: {api_task.args.get('path')}")
 
     @staticmethod
-    def output_alist_remove(func) -> Callable[..., ApiResponse]:
+    def output_alist_remove(api_task: "ApiTask") -> None:
         """输出文件/文件夹删除信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 输出删除文件/文件夹请求结果
-            if not return_data.success:
-                # Message.error(
-                #     f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"删除失败: {Utils.get_argument(1, 'path', args, kwargs)}"
-                )
-            else:
-                for name in Utils.get_argument(2, "name", args, kwargs):
-                    Message.success(
-                        f"删除路径: {Utils.get_argument(1, 'path', args, kwargs)}/{name}"
-                    )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        # 输出删除文件/文件夹请求结果
+        if api_task.response.success:
+            for name in api_task.args.get("name", []):
+                Message.success(f"删除路径: {api_task.args.get('path')}/{name}")
+        else:
+            Message.error(f"删除失败: {api_task.args.get('path')}")
 
     @staticmethod
-    def output_tmdb_tv_info(func) -> Callable[..., ApiResponse]:
+    def output_tmdb_tv_info(api_task: "ApiTask") -> None:
         """输出剧集信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(f"tv_id: {Utils.get_argument(1, 'tv_id', args, kwargs)}")
-                return return_data
-
+        # 请求失败则输出失败信息
+        if api_task.response.success:
             # 格式化输出请求结果
-            first_air_year = return_data.response["first_air_date"][:4]
-            name = return_data.response["name"]
+            first_air_year = api_task.response.data["first_air_date"][:4]
+            name = api_task.response.data["name"]
             dir_name = f"{name} ({first_air_year})"
             Message.success(dir_name)
-            seasons = return_data.response["seasons"]
+            seasons = api_task.response.data["seasons"]
             table = Table(box=box.SIMPLE)
             table.add_column("开播时间", justify="center", style="cyan")
             table.add_column("集数", justify="center", style="magenta")
@@ -299,31 +243,16 @@ class Output:
                     season["name"],
                 )
             console.print(table)
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        else:
+            Message.error(f"tv_id: {api_task.args.get('tv_id')}")
 
     @staticmethod
-    def output_tmdb_search_tv(func):
+    def output_tmdb_search_tv(api_task: "ApiTask") -> None:
         """输出查找剧集信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"关键词: {Utils.get_argument(1, 'keyword', args, kwargs)}"
-                )
-                return return_data
-
-            Message.success(f"关键词: {Utils.get_argument(1, 'keyword', args, kwargs)}")
+        # 输出请求结果
+        if api_task.response.success:
+            Message.success(f"关键词: {api_task.args.get('keyword')}")
             table = Table(box=box.SIMPLE)
             table.add_column("开播时间", justify="center", style="cyan")
             table.add_column("序号", justify="center", style="green")
@@ -331,87 +260,46 @@ class Output:
             # table.add_column(
             #     footer="共计: " + str(len(return_data["results"])), style="grey53"
             # )
-            for i, r in enumerate(return_data.response["results"]):
+            for i, r in enumerate(api_task.response.data["results"]):
                 table.add_row(r["first_air_date"], str(i), r["name"])
             console.print(table)
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        else:
+            Message.error(f"关键词: {api_task.args.get('keyword')}")
 
     @staticmethod
-    def output_tmdb_tv_season_info(func):
+    def output_tmdb_tv_season_info(api_task: "ApiTask") -> None:
         """输出剧集季度信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"剧集id: {Utils.get_argument(1, 'tv_id', args, kwargs)}\t第 {Utils.get_argument(2, 'season_number', args, kwargs)} 季"
-                )
-
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_tmdb_movie_info(func):
-        """输出电影信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"tv_id: {Utils.get_argument(1, 'movie_id', args, kwargs)}"
-                )
-                return return_data
-
-            # 格式化输出请求结果
-            Message.success(
-                f"{return_data.response['title']} {return_data.response['release_date']}"
+        # 请求失败则输出失败信息
+        if not api_task.response.success:
+            Message.error(
+                f"剧集id: {api_task.args.get('tv_id')}\t第 {api_task.args.get('season_number')} 季"
             )
 
-            console.print(f"[标语] {return_data.response['tagline']}")
+    @staticmethod
+    def output_tmdb_movie_info(api_task: "ApiTask") -> None:
+        """输出电影信息"""
 
-            console.print(f"[剧集简介] {return_data.response['overview']}")
+        # 格式化输出请求结果
+        if api_task.response.success:
+            Message.success(
+                f"{api_task.response.data['title']} {api_task.response.data['release_date']}"
+            )
 
-            # 返回请求结果
-            return return_data
+            console.print(f"[标语] {api_task.response.data['tagline']}")
 
-        return wrapper
+            console.print(f"[剧集简介] {api_task.response.data['overview']}")
+
+        # 请求失败则输出失败信息
+        else:
+            Message.error(f"tv_id: {api_task.args.get('movie_id')}")
 
     @staticmethod
-    def output_tmdb_search_movie(func):
+    def output_tmdb_search_movie(api_task: "ApiTask") -> None:
         """输出查找电影信息"""
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponse = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data.error}"
-                # )
-                Message.error(
-                    f"Keyword: {Utils.get_argument(1, 'keyword', args, kwargs)}"
-                )
-                return return_data
-
-            Message.success(f"关键词: {Utils.get_argument(1, 'keyword', args, kwargs)}")
+        if api_task.response.success:
+            Message.success(f"关键词: {api_task.args.get('keyword')}")
 
             table = Table(box=box.SIMPLE)
             table.add_column("首播时间", justify="center", style="cyan")
@@ -420,14 +308,13 @@ class Output:
             # table.add_column(
             #     footer="共计: " + str(len(return_data["results"])), style="grey53"
             # )
-            for i, r in enumerate(return_data.response["results"]):
+            for i, r in enumerate(api_task.response.data["results"]):
                 table.add_row(r["release_date"], str(i), r["title"])
             console.print(table)
 
-            # 返回请求结果
-            return return_data
-
-        return wrapper
+        # 请求失败则输出失败信息
+        else:
+            Message.error(f"Keyword: {api_task.args.get('keyword')}")
 
     @staticmethod
     def print_rename_info(

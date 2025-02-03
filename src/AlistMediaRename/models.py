@@ -212,14 +212,11 @@ class RenameTask(BaseModel):
         return self
 
 
-class ApiResponseModel(BaseModel):
+class ApiResponse(BaseModel):
     success: bool
     status_code: int
     error: str
     data: dict
-    function: str
-    args: tuple
-    kwargs: dict
 
 
 class ApiResonses(BaseModel):
@@ -232,9 +229,9 @@ class ApiResonses(BaseModel):
 
         model_config = ConfigDict(validate_assignment=True)  # 开启动态验证
 
-        result_file_list: Optional[ApiResponseModel]
-        result_tv_info: Optional[ApiResponseModel]
-        result_tv_season_info: Optional[ApiResponseModel]
+        result_file_list: Optional[ApiResponse]
+        result_tv_info: Optional[ApiResponse]
+        result_tv_season_info: Optional[ApiResponse]
 
         @field_validator("tv_id", mode="before")
         @classmethod
@@ -249,8 +246,8 @@ class ApiResonses(BaseModel):
 
         model_config = ConfigDict(validate_assignment=True)  # 开启动态验证
 
-        result_file_list: Optional[ApiResponseModel]
-        result_movie_info: Optional[ApiResponseModel]
+        result_file_list: Optional[ApiResponse]
+        result_movie_info: Optional[ApiResponse]
 
         @field_validator("movie_id", mode="before")
         @classmethod
@@ -258,6 +255,9 @@ class ApiResonses(BaseModel):
             """转换movie_id为字符串"""
             return str(movie_id)
 
-    result_login: Optional[ApiResponseModel]
     tv: TV = TV(result_file_list=None, result_tv_info=None, result_tv_season_info=None)
     movie: Movie = Movie(result_file_list=None, result_movie_info=None)
+
+
+class ApiResponseError(Exception):
+    pass

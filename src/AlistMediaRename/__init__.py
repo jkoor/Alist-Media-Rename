@@ -1,13 +1,15 @@
 from typing import Union
 import httpx
 
-from .api import AlistApi, TMDBApi
+from AlistMediaRename.task import TaskManager
+
+from .api_copy import AlistApi, TMDBApi
 from .config import Config
 
-from .log import logger, HandleException  # noqa: F401
-from .models import ApiResponseModel, ApiResonses, RenameTask, Folder
-from .output import Output, console
-from .utils import HelperFunc
+from .models import ApiResponse, RenameTask, Folder
+from .output_copy import OutputParser, console
+from .task import taskManager, ApiTask
+from .utils import Helper
 
 
 class Amr:
@@ -20,7 +22,6 @@ class Amr:
 
     """
 
-    @HandleException.catch_main_exceptions
     def __init__(self, config: Union[Config, str]):
         """
         初始化参数
@@ -31,9 +32,7 @@ class Amr:
 
         self.config = config if type(config) is Config else Config(config)
 
-        self._helper = HelperFunc(self)
-
-        self._data = ApiResonses(result_login=None)
+        self._taskManager: TaskManager = taskManager
 
         with console.status("登录Alist..."):
             # 初始化 AlistApi 和 TMDBApi
@@ -42,19 +41,13 @@ class Amr:
                 self.config.alist.user,
                 self.config.alist.password,
                 self.config.alist.totp,
-                self._sync_client,
             )
             self.tmdb = TMDBApi(
-                self.config.tmdb.api_url,
                 self.config.tmdb.api_key,
-                self._sync_client,
+                self.config.tmdb.api_url,
             )
 
-            # Step 0: 登录Alist
-            self._data.result_login = self.alist.login()
-
     # TAG: tv_rename_id
-    @HandleException.catch_main_exceptions
     def tv_rename_id(
         self,
         tv_id: str,
@@ -72,39 +65,38 @@ class Amr:
         :return: 重命名请求结果
         """
 
-        self._data.tv.tv_id = tv_id
-        self._data.tv.folder_path = Folder(path=folder_path)
-
         ### ------------------------ 获取文件列表 ------------------------ ####
         with console.status("获取文件列表..."):
             # Step 1: 刷新文件夹所在父文件夹，防止Alist未及时刷新，导致无法获取文件列表
-            self.alist.file_list(
-                self._data.tv.folder_path.parent_path(), folder_password, True
+            task_0_file_list: ApiTask = self.alist.file_list(
+                Folder(path=folder_path).parent_path(), folder_password, True
             )
             # Step 2: 获取文件夹列表
-            result_file_list: ApiResponseModel = self.alist.file_list(
+            task_1_file_list: ApiTask = self.alist.file_list(
                 folder_path, folder_password, True
             )
-            self._data.tv.result_file_list = result_file_list
 
         ### ------------------------ 获取 TMDB 剧集/季度信息 ------------------------ ####
         # TODO: 修改电影输出信息
         # Step 3: 根据剧集 id 查找 TMDB 剧集信息
         with console.status("查找指定剧集..."):
-            result_tv_info: ApiResponseModel = self.tmdb.tv_info(
+            task_2_tv_info: ApiTask = self.tmdb.tv_info(
                 tv_id, self.config.tmdb.language
             )
-        self._data.tv.result_tv_info = result_tv_info
+
+            self._taskManager.add_tasks(task_0_file_list, task_2_tv_info)
+            self._taskManager.run_tasks(self.config.amr.rename_by_async)
 
         # Step 4: 根据查找信息选择季度
-        season_number = self._helper.get_season_number()
+        season_number = Helper.get_season_number(task_2_tv_info)
 
         # Step 5: 获取剧集对应季每集信息
         with console.status("获取季度信息..."):
-            result_tv_season_info: ApiResponseModel = self.tmdb.tv_season_info(
+            task_3_tv_season_info: ApiTask = self.tmdb.tv_season_info(
                 tv_id, season_number, self.config.tmdb.language
             )
-        self._data.tv.result_tv_season_info = result_tv_season_info
+            self._taskManager.add_tasks(task_3_tv_season_info, task_1_file_list)
+            self._taskManager.run_tasks(self.config.amr.rename_by_async)
 
         ### ------------------------ 匹配剧集信息-文件列表 -------------------- ###
         # Step 5: 匹配剧集信息-文件列表
@@ -145,7 +137,7 @@ class Amr:
         # Step 8: 进行文件重命名操作
         with console.status("正在重命名文件..."):
             # 重命名文件
-            result_rename_list: list[ApiResponseModel] = self.alist.rename_list(
+            result_rename_list: list[ApiResponse] = self.alist.rename_list(
                 video_rename_list + subtitle_rename_list,
                 async_mode=self.config.amr.rename_by_async,
             )
@@ -154,16 +146,16 @@ class Amr:
             folder_count = 0
             if self.config.amr.media_folder_rename:
                 folder_count = 1
-                result_folder_rename: list[ApiResponseModel] = self.alist.rename_list(
+                result_folder_rename: list[ApiResponse] = self.alist.rename_list(
                     folder_rename_list, async_mode=False
                 )
             else:
                 result_folder_rename = [
-                    ApiResponseModel(
+                    ApiResponse(
                         success=True,
                         status_code=200,
                         error="",
-                        data={"result": "未重命名父文件夹"},
+                        response={"result": "未重命名父文件夹"},
                         function="重命名父文件夹",
                         args=(),
                         kwargs={},
@@ -182,7 +174,6 @@ class Amr:
         return True
 
     # TAG: tv_rename_keyword
-    @HandleException.catch_main_exceptions
     def tv_rename_keyword(
         self,
         keyword: str,
@@ -204,15 +195,15 @@ class Amr:
         # Step 1: 使用关键词查找剧集
         self._data.tv.keyword = keyword
         with console.status("查找指定剧集..."):
-            result_search_tv: ApiResponseModel = self.tmdb.search_tv(
+            result_search_tv: ApiResponse = self.tmdb.search_tv(
                 keyword, self.config.tmdb.language
             )
 
         ### ------------------------ 2. 获取剧集 TMDB ID ------------------------------ ###
         # Step 2: 选择剧集
-        length = len(result_search_tv.data["results"])
+        length = len(result_search_tv.response["results"])
         selected_number = Output.select_number(length)
-        tv_id = result_search_tv.data["results"][selected_number]["id"]
+        tv_id = result_search_tv.response["results"][selected_number]["id"]
 
         # Step 3: 根据获取到的id调用 tv_rename_id 函数进行重命名
         self.tv_rename_id(tv_id, folder_path, folder_password, first_number)
@@ -220,7 +211,6 @@ class Amr:
         return True
 
     # TAG: movie_rename_id
-    @HandleException.catch_main_exceptions
     def movie_rename_id(
         self, movie_id: str, folder_path: str, folder_password=None
     ) -> bool:
@@ -244,7 +234,7 @@ class Amr:
             )
 
             # Step 2: 获取文件夹列表
-            result_file_list: ApiResponseModel = self.alist.file_list(
+            result_file_list: ApiResponse = self.alist.file_list(
                 folder_path, folder_password, True
             )
         self._data.movie.result_file_list = result_file_list
@@ -252,7 +242,7 @@ class Amr:
         ### ------------------------ 2. 查找 TMDB 电影信息 ------------------------ ####
         # Step 1: 根据电影 id 查找 TMDB 电影信息
         with console.status("查找指定电影..."):
-            result_movie_info: ApiResponseModel = self.tmdb.movie_info(
+            result_movie_info: ApiResponse = self.tmdb.movie_info(
                 movie_id, self.config.tmdb.language
             )
         self._data.movie.result_movie_info = result_movie_info
@@ -295,7 +285,7 @@ class Amr:
         # Step 6: 进行文件重命名操作
         with console.status("正在重命名文件..."):
             # 重命名文件
-            result_rename_list: list[ApiResponseModel] = self.alist.rename_list(
+            result_rename_list: list[ApiResponse] = self.alist.rename_list(
                 video_rename_list + subtitle_rename_list,
                 async_mode=self.config.amr.rename_by_async,
             )
@@ -304,16 +294,16 @@ class Amr:
             folder_count = 0
             if self.config.amr.media_folder_rename:
                 folder_count = 1
-                result_folder_rename: list[ApiResponseModel] = self.alist.rename_list(
+                result_folder_rename: list[ApiResponse] = self.alist.rename_list(
                     folder_rename_list, async_mode=False
                 )
             else:
                 result_folder_rename = [
-                    ApiResponseModel(
+                    ApiResponse(
                         success=True,
                         status_code=200,
                         error="",
-                        data={"result": "未重命名父文件夹"},
+                        response={"result": "未重命名父文件夹"},
                         function="重命名父文件夹",
                         args=(),
                         kwargs={},
@@ -331,7 +321,6 @@ class Amr:
         return True
 
     # TAG: movie_rename_keyword
-    @HandleException.catch_main_exceptions
     def movie_rename_keyword(
         self, keyword: str, folder_path: str, folder_password=None
     ) -> bool:
@@ -347,15 +336,15 @@ class Amr:
         ### ------------------------ 1. 查找 TMDB 电影信息 ------------------------ ####
         # Step 1: 使用关键词查找电影
         with console.status("查找指定电影..."):
-            result_search_movie: ApiResponseModel = self.tmdb.search_movie(
+            result_search_movie: ApiResponse = self.tmdb.search_movie(
                 keyword, self.config.tmdb.language
             )
 
         ### ------------------------ 2. 获取剧集 TMDB ID ------------------------------ ###
         # Step 2: 选择电影
-        length = len(result_search_movie.data["results"])
+        length = len(result_search_movie.response["results"])
         selected_number = Output.select_number(length)
-        movie_id = result_search_movie.data["results"][selected_number]["id"]
+        movie_id = result_search_movie.response["results"][selected_number]["id"]
 
         # Step 3: 根据获取到的id调用 movie_rename_id 函数进行重命名
         self.movie_rename_id(movie_id, folder_path, folder_password)

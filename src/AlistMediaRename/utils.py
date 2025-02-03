@@ -1,14 +1,11 @@
 import re
-from typing import TYPE_CHECKING
 from natsort import natsorted
 from .models import MediaMeta, Formated_Variables, FileMeta, RenameTask, Folder
 from .output import Output
-
-if TYPE_CHECKING:
-    from . import Amr  # 仅在类型检查时导入
+from .task import ApiTask
 
 
-class Tools:
+class Utils:
     """
     工具函数类
     """
@@ -53,9 +50,65 @@ class Tools:
         return pages
 
 
-class HelperFunc:
-    def __init__(self, amr: "Amr") -> None:
-        self.amr = amr
+class Helper:
+    @staticmethod
+    def create_tv_media_list(
+        first_number: str, task_2_tv_info: ApiTask, task_3_tv_season_info: ApiTask
+    ) -> tuple[list[MediaMeta], list[MediaMeta]]:
+        """创建媒体元数据"""
+
+        # 创建格式化变量
+        fv_tv = Formated_Variables.tv(
+            name=task_2_tv_info.response.data["name"],
+            original_name=task_2_tv_info.response.data["original_name"],
+            year=task_2_tv_info.response.data["first_air_date"][:4],
+            first_air_date=task_2_tv_info.response.data["first_air_date"],
+            language=task_2_tv_info.response.data["original_language"],
+            region=task_2_tv_info.response.data["origin_country"][0],
+            rating=task_2_tv_info.response.data["vote_average"],
+            season=task_3_tv_season_info.response.data["season_number"],
+            season_year=task_3_tv_season_info.response.data["air_date"][:4],
+            tmdb_id=self.amr._data.tv.tv_id,
+        )
+        # 创建媒体元数据列表
+        indexs: list[int] = Utils.parse_page_ranges(
+            first_number,
+            len(task_3_tv_season_info.response.data["episodes"]),
+        )
+        media_list: list[MediaMeta] = []
+        for ep in task_3_tv_season_info.response.data["episodes"]:
+            if ep["episode_number"] not in indexs:
+                continue
+
+            # 创建格式化变量
+            fv_episode = Formated_Variables.episode(
+                episode=ep["episode_number"],
+                air_date=ep["air_date"],
+                episode_rating=ep["vote_average"],
+                title=ep["name"],
+            )
+            media_list.append(
+                MediaMeta(
+                    media_type="tv",
+                    rename_format=self.amr.config.amr.tv_name_format,
+                    movie_format_variables=None,
+                    tv_format_variables=fv_tv,
+                    episode_format_variables=fv_episode,
+                )
+            )
+
+        # 创建文件夹媒体元数据列表
+        folder_media_list: list[MediaMeta] = [
+            MediaMeta(
+                media_type=media_type,
+                rename_format=self.amr.config.amr.tv_folder_name_format,
+                movie_format_variables=None,
+                tv_format_variables=fv_tv,
+                episode_format_variables=None,
+            )
+        ]
+
+        return media_list, folder_media_list
 
     def create_media_list(
         self, media_type: str, first_number: str
@@ -71,26 +124,32 @@ class HelperFunc:
                 raise ValueError("result_tv_info is None")
             # 创建格式化变量
             fv_tv = Formated_Variables.tv(
-                name=self.amr._data.tv.result_tv_info.data["name"],
-                original_name=self.amr._data.tv.result_tv_info.data["original_name"],
-                year=self.amr._data.tv.result_tv_info.data["first_air_date"][:4],
-                first_air_date=self.amr._data.tv.result_tv_info.data["first_air_date"],
-                language=self.amr._data.tv.result_tv_info.data["original_language"],
-                region=self.amr._data.tv.result_tv_info.data["origin_country"][0],
-                rating=self.amr._data.tv.result_tv_info.data["vote_average"],
-                season=self.amr._data.tv.result_tv_season_info.data["season_number"],
-                season_year=self.amr._data.tv.result_tv_season_info.data["air_date"][
-                    :4
+                name=self.amr._data.tv.result_tv_info.response["name"],
+                original_name=self.amr._data.tv.result_tv_info.response[
+                    "original_name"
                 ],
+                year=self.amr._data.tv.result_tv_info.response["first_air_date"][:4],
+                first_air_date=self.amr._data.tv.result_tv_info.response[
+                    "first_air_date"
+                ],
+                language=self.amr._data.tv.result_tv_info.response["original_language"],
+                region=self.amr._data.tv.result_tv_info.response["origin_country"][0],
+                rating=self.amr._data.tv.result_tv_info.response["vote_average"],
+                season=self.amr._data.tv.result_tv_season_info.response[
+                    "season_number"
+                ],
+                season_year=self.amr._data.tv.result_tv_season_info.response[
+                    "air_date"
+                ][:4],
                 tmdb_id=self.amr._data.tv.tv_id,
             )
             # 创建媒体元数据列表
-            indexs: list[int] = Tools.parse_page_ranges(
+            indexs: list[int] = Utils.parse_page_ranges(
                 first_number,
-                len(self.amr._data.tv.result_tv_season_info.data["episodes"]),
+                len(self.amr._data.tv.result_tv_season_info.response["episodes"]),
             )
             media_list: list[MediaMeta] = []
-            for ep in self.amr._data.tv.result_tv_season_info.data["episodes"]:
+            for ep in self.amr._data.tv.result_tv_season_info.response["episodes"]:
                 if ep["episode_number"] not in indexs:
                     continue
 
@@ -127,19 +186,23 @@ class HelperFunc:
                 raise ValueError("result_movie_info is None")
             # 创建格式化变量
             fv_movie = Formated_Variables.movie(
-                name=self.amr._data.movie.result_movie_info.data["title"],
-                original_name=self.amr._data.movie.result_movie_info.data[
+                name=self.amr._data.movie.result_movie_info.response["title"],
+                original_name=self.amr._data.movie.result_movie_info.response[
                     "original_title"
                 ],
-                year=self.amr._data.movie.result_movie_info.data["release_date"][:4],
-                release_date=self.amr._data.movie.result_movie_info.data[
+                year=self.amr._data.movie.result_movie_info.response["release_date"][
+                    :4
+                ],
+                release_date=self.amr._data.movie.result_movie_info.response[
                     "release_date"
                 ],
-                language=self.amr._data.movie.result_movie_info.data[
+                language=self.amr._data.movie.result_movie_info.response[
                     "original_language"
                 ],
-                region=self.amr._data.movie.result_movie_info.data["origin_country"][0],
-                rating=self.amr._data.movie.result_movie_info.data["vote_average"],
+                region=self.amr._data.movie.result_movie_info.response[
+                    "origin_country"
+                ][0],
+                rating=self.amr._data.movie.result_movie_info.response["vote_average"],
                 tmdb_id=self.amr._data.movie.movie_id,
             )
             # 创建媒体元数据列表
@@ -188,32 +251,29 @@ class HelperFunc:
             raise ValueError("result_file_list is None")
 
         file_list: list[str] = list(
-            map(lambda x: x["name"], result_file_list.data["content"])
+            map(lambda x: x["name"], result_file_list.response["content"])
         )
 
         video_file_list: list[FileMeta] = [
             FileMeta(filename=file, folder_path=folder_path)
-            for file in Tools.filter_file(
+            for file in Utils.filter_file(
                 file_list, self.amr.config.amr.video_regex_pattern
             )
         ]
         subtitle_file_list: list[FileMeta] = [
             FileMeta(filename=file, folder_path=folder_path)
-            for file in Tools.filter_file(
+            for file in Utils.filter_file(
                 file_list, self.amr.config.amr.subtitle_regex_pattern
             )
         ]
         return video_file_list, subtitle_file_list
 
-    def get_season_number(self) -> int:
+    @staticmethod
+    def get_season_number(task_2_tv_info: ApiTask) -> int:
         """获取季度编号"""
-        if self.amr._data.tv.result_tv_info is None:
-            raise ValueError("result_tv_info is None")
-        length = len(self.amr._data.tv.result_tv_info.data["seasons"])
+        length = len(task_2_tv_info.response.data["seasons"])
         index = Output.select_number(length)
-        season_number = self.amr._data.tv.result_tv_info.data["seasons"][index][
-            "season_number"
-        ]
+        season_number = task_2_tv_info.response.data["seasons"][index]["season_number"]
         return season_number
 
     def match_episode_files(
