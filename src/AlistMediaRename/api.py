@@ -1,170 +1,13 @@
-import asyncio
-from functools import wraps
-import threading
-from typing import Callable
-
 import httpx
 import pyotp
 
-from .models import ApiResponse, RenameTask
-from .log import HandleException
-from .output import Output
-
-
-class Utils:
-    """
-    工具函数
-    """
-
-    # 创建异步客户端
-    client = httpx.AsyncClient()
-
-    # 使用 threading.local() 来存储每个线程/任务的装饰器状态
-    local = threading.local()
-
-    @staticmethod
-    # 装饰器：自动执行异步请求（可以关闭）
-    def async_call(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # 使用线程局部变量来检查是否启用装饰器
-            if getattr(Utils.local, "decorator_enabled", True):  # 默认为 True
-                return asyncio.run(func(*args))
-
-            else:
-                return func(*args, **kwargs)  # 直接执行异步函数
-
-        return wrapper
-
-    # 异步框架：接收多个请求函数并并行执行
-    def async_requests(*funcs):
-        async def requests(*funcs):
-            # 关闭装饰器
-            Utils.local.decorator_enabled = False  # 关闭装饰器
-            tasks = []
-            for func in funcs:
-                tasks.append(func)  # 将每个请求函数添加为任务
-            results = await asyncio.gather(*tasks)  # 并行执行所有任务
-            return results
-
-        # 并行执行所有任务
-        return asyncio.run(requests(*funcs))
-
-
-# 封装接口返回信息
-class ApiResponse:
-    """
-    封装接口返回信息
-    """
-
-    @staticmethod
-    def alist_api_response(func) -> Callable[..., ApiResponse]:
-        """
-        封装Alist api返回信息.
-        """
-
-        @wraps(func)
-        async def async_wrapper(*args, **kwargs) -> ApiResponse:
-            rawdata = await func(*args, **kwargs)
-
-            if rawdata["message"] == "success":
-                return ApiResponse(
-                    success=True,
-                    status_code=rawdata["code"],
-                    error="",
-                    response=rawdata["data"] if rawdata["data"] else {},
-                    function=func.__qualname__,
-                    args=args,
-                    kwargs=kwargs,
-                )
-            return ApiResponse(
-                success=False,
-                status_code=rawdata["code"],
-                error=rawdata["message"],
-                response=rawdata["data"] if rawdata["data"] else {},
-                function=func.__qualname__,
-                args=args,
-                kwargs=kwargs,
-            )
-
-        @wraps(func)
-        def sync_wrapper(*args, **kwargs) -> ApiResponse:
-            rawdata = func(*args, **kwargs)
-
-            if rawdata["message"] == "success":
-                return ApiResponse(
-                    success=True,
-                    status_code=rawdata["code"],
-                    error="",
-                    response=rawdata["data"] if rawdata["data"] else {},
-                    function=func.__qualname__,
-                    args=args,
-                    kwargs=kwargs,
-                )
-            else:
-                return ApiResponse(
-                    success=False,
-                    status_code=rawdata["code"],
-                    error=rawdata["message"],
-                    response=rawdata["data"] if rawdata["data"] else {},
-                    function=func.__qualname__,
-                    args=args,
-                    kwargs=kwargs,
-                )
-
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper  # type: ignore
-        else:
-            return sync_wrapper
-
-    @staticmethod
-    def tmdb_api_response(func) -> Callable[..., ApiResponse]:
-        """
-        封装TMDB api返回信息装饰器.
-        """
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            rawdata, status_code = func(*args, **kwargs)
-
-            if status_code == 200:
-                if "results" in rawdata and rawdata["results"] == []:
-                    return ApiResponse(
-                        success=False,
-                        status_code=status_code,
-                        error="指定关键词未查找到相关信息",
-                        response=rawdata,
-                        function=func.__qualname__,
-                        args=args,
-                        kwargs=kwargs,
-                    )
-                return ApiResponse(
-                    success=True,
-                    status_code=status_code,
-                    error="",
-                    response=rawdata,
-                    function=func.__qualname__,
-                    args=args,
-                    kwargs=kwargs,
-                )
-            else:
-                return ApiResponse(
-                    success=False,
-                    status_code=status_code,
-                    error=rawdata.get("status_message", ""),
-                    response=rawdata,
-                    function=func.__qualname__,
-                    args=args,
-                    kwargs=kwargs,
-                )
-
-        return wrapper
+from .task import ApiTask, taskManager
 
 
 class AlistApi:
     """
     Alist请求函数, 包含: 登录/获取文件列表/重命名文件/删除文件/新建文件夹/上传文件/获取下载链接/获取存储驱动信息
-    Alist api非官方说明文档(来自网友分享): https://zhuanlan.zhihu.com/p/587004798
+    Alist api官方文档: https://alist-v3.apifox.cn/
     """
 
     def __init__(
@@ -173,37 +16,42 @@ class AlistApi:
         user: str = "",
         password: str = "",
         totp_code: str = "",
-        sync_client=None,
+        token: str = "",
     ):
         """
-        初始化参数.
+        初始化参数
 
-        :param url: Alist 主页链接
-        :param user: Alist 登录账号
-        :param password: Alist 登录密码
-        :param totp_code: Alist 2FA 验证码
+        :param url: Alist网址
+        :param user: 用户名
+        :param password: 密码
+        :param totp_code: totp验证码
+        :param token: Token
         """
 
-        self.url = url.rstrip("/")
+        self.url = url
         self.user = user
         self.password = password
-        # 使用self.totp_code.now() 生成实时 TOTP 验证码
-        self.totp_code = pyotp.TOTP(totp_code)
-        self.token = ""
-        self.timeout = 10
-        self._client = Utils.client
-        self._sync_client = sync_client or httpx.Client()
+        self.totp_code = totp_code
+        self._token = self.get_token(token)
 
-    @HandleException.raise_error
-    @Output.output_alist_login
-    @HandleException.catch_api_exceptions
-    @Utils.async_call
-    @ApiResponse.alist_api_response
-    async def login(self) -> dict:
+    def get_token(self, token) -> str:
+        """
+        获取Token
+
+        :return: Token
+        """
+        if token != "":
+            return token
+        else:
+            taskManager.add_tasks(self.login())
+            (result,) = taskManager.run_sync()
+            return result.data["token"]
+
+    @ApiTask.create("alist", "login", raise_error=True)
+    def login(self) -> httpx.Request:
         """
         获取登录Token
 
-        :param silent: 是否不显示登录状态信息
         :return: 获取Token请求结果
         """
 
@@ -212,29 +60,12 @@ class AlistApi:
         post_datas = {
             "Username": self.user,
             "Password": self.password,
-            "OtpCode": self.totp_code.now(),
+            "OtpCode": pyotp.TOTP(self.totp_code).now(),
         }
-        r = await self._client.post(url=post_url, data=post_datas, timeout=self.timeout)
 
-        if r.status_code != 200:
-            return {"message": "Alist 网站连接失败", "code": r.status_code, "data": {}}
+        return httpx.Request("POST", post_url, data=post_datas)
 
-        return_data = r.json()
-
-        if return_data["data"] is None:
-            return_data["data"] = {}
-
-        if return_data["message"] == "success":
-            self.token = return_data["data"]["token"]
-            # 隐藏Token信息
-            return_data["data"]["token"] = "********"
-        # 返回请求结果
-        return return_data
-
-    @HandleException.raise_error
-    @Output.output_alist_file_list
-    @HandleException.catch_api_exceptions
-    @ApiResponse.alist_api_response
+    @ApiTask.create("alist", "file_list", raise_error=True)
     def file_list(
         self,
         path: str = "/",
@@ -242,7 +73,7 @@ class AlistApi:
         refresh: bool = True,
         per_page: int = 0,
         page: int = 1,
-    ) -> dict:
+    ) -> httpx.Request:
         """
         获取文件列表,并格式化输出所有文件名称.
 
@@ -256,7 +87,7 @@ class AlistApi:
 
         # 发送请求
         post_url = self.url + "/api/fs/list"
-        post_headers = {"Authorization": self.token}
+        post_headers = {"Authorization": self._token}
         post_params = {
             "path": path,
             "password": password,
@@ -264,117 +95,26 @@ class AlistApi:
             "per_page": per_page,
             "page": page,
         }
-        r = self._sync_client.post(
-            url=post_url, headers=post_headers, params=post_params, timeout=self.timeout
-        )
+        return httpx.Request("POST", post_url, headers=post_headers, json=post_params)
 
-        # 获取请求结果
-        return r.json()
-
-    def rename_list(
-        self, rename_list: list[RenameTask], async_mode: bool = True
-    ) -> list[ApiResponse]:
+    @ApiTask.create("alist", "slient", raise_error=False)
+    def rename(self, name: str, path: str) -> httpx.Request:
         """
-        批量重命名文件.
+        重命名文件/文件夹.
 
-        :param rename_list: 重命名文件列表
-        :param folder_path: 文件所在文件夹路径
-        :param async_mode: 是否使用异步方式重命名文件
-        :return: 重命名文件请求结果
+        :param name: 重命名名称
+        :param path: 源文件/文件夹路径
+        :return: 重命名文件/文件夹请求结果
         """
 
-        if async_mode:
-            return self.rename_list_async(rename_list)
-        else:
-            return self.rename_list_sync(rename_list)
+        # 发送请求
+        post_url = self.url + "/api/fs/rename"
+        post_headers = {"Authorization": self._token}
+        post_json = {"name": name, "path": path}
+        return httpx.Request("POST", post_url, headers=post_headers, json=post_json)
 
-    def rename_list_async(
-        self, rename_list: list[RenameTask]
-    ) -> list[ApiResponse]:
-        async def async_run(rename_list: list[RenameTask]) -> list[ApiResponse]:
-            async_client = httpx.AsyncClient()
-
-            @HandleException.catch_api_exceptions
-            @ApiResponse.alist_api_response
-            async def rename_async(name: str, path: str) -> dict:
-                """
-                异步重命名文件/文件夹.
-
-                :param name: 重命名名称
-                :param path: 源文件/文件夹路径
-                :return: 重命名文件/文件夹请求结果
-                """
-
-                # 发送请求
-                post_url = self.url + "/api/fs/rename"
-                post_headers = {"Authorization": self.token}
-                post_json = {"name": name, "path": path}
-
-                r = await async_client.post(
-                    url=post_url,
-                    headers=post_headers,
-                    json=post_json,
-                    timeout=self.timeout,
-                )
-                # 获取请求结果
-                return r.json()
-
-            async with async_client:
-                tasks = []
-                for file in rename_list:
-                    name = file.target_name
-                    path = str(file.folder_path) + file.original_name
-                    tasks.append(asyncio.ensure_future(rename_async(name, path)))  # type: ignore
-
-                results: list[ApiResponse] = await asyncio.gather(*tasks)
-            return results
-
-        return asyncio.run(async_run(rename_list))
-
-    def rename_list_sync(self, rename_list: list[RenameTask]) -> list[ApiResponse]:
-        """
-        批量重命名文件.
-
-        :param rename_list: 重命名文件列表
-        :param folder_path: 文件所在文件夹路径
-        :return: 重命名文件请求结果
-        """
-
-        # @Message.output_alist_rename
-        @HandleException.catch_api_exceptions
-        @ApiResponse.alist_api_response
-        def rename(name: str, path: str) -> dict:
-            """
-            重命名文件/文件夹.
-
-            :param name: 重命名名称
-            :param path: 源文件/文件夹路径
-            :return: 重命名文件/文件夹请求结果
-            """
-
-            # 发送请求
-            post_url = self.url + "/api/fs/rename"
-            post_headers = {"Authorization": self.token}
-            post_json = {"name": name, "path": path}
-            r = self._sync_client.post(
-                url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-            )
-
-            # 获取请求结果
-            return r.json()
-
-        result = []
-        for file in rename_list:
-            name = file.target_name
-            path = str(file.folder_path) + file.original_name
-            result.append(rename(name, path))
-
-        return result
-
-    @Output.output_alist_move
-    @HandleException.catch_api_exceptions
-    @ApiResponse.alist_api_response
-    def move(self, names: list, src_dir: str, dst_dir: str) -> dict:
+    @ApiTask.create("alist", "move", raise_error=False)
+    def move(self, names: list, src_dir: str, dst_dir: str) -> httpx.Request:
         """
         移动文件/文件夹.
         :param names: 需要移动的文件名称列表
@@ -385,18 +125,12 @@ class AlistApi:
 
         # 发送请求
         post_url = self.url + "/api/fs/move"
-        post_headers = {"Authorization": self.token}
+        post_headers = {"Authorization": self._token}
         post_json = {"src_dir": src_dir, "dst_dir": dst_dir, "names": names}
-        r = self._sync_client.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
-        # 获取请求结果
-        return r.json()
+        return httpx.Request("POST", post_url, headers=post_headers, json=post_json)
 
-    @Output.output_alist_mkdir
-    @HandleException.catch_api_exceptions
-    @ApiResponse.alist_api_response
-    def mkdir(self, path: str) -> dict:
+    @ApiTask.create("alist", "mkdir", raise_error=False)
+    def mkdir(self, path: str) -> httpx.Request:
         """
         新建文件夹.
 
@@ -405,18 +139,12 @@ class AlistApi:
         """
         # 发送请求
         post_url = self.url + "/api/fs/mkdir"
-        post_headers = {"Authorization": self.token}
+        post_headers = {"Authorization": self._token}
         post_json = {"path": path}
-        r = self._sync_client.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
-        # 获取请求结果
-        return r.json()
+        return httpx.Request("POST", post_url, headers=post_headers, json=post_json)
 
-    @Output.output_alist_remove
-    @HandleException.catch_api_exceptions
-    @ApiResponse.alist_api_response
-    def remove(self, path: str, names: list) -> dict:
+    @ApiTask.create("alist", "remove", raise_error=False)
+    def remove(self, path: str, names: list) -> httpx.Request:
         """
         删除文件/文件夹.
 
@@ -427,14 +155,9 @@ class AlistApi:
 
         # 发送请求
         post_url = self.url + "/api/fs/remove"
-        post_headers = {"Authorization": self.token}
+        post_headers = {"Authorization": self._token}
         post_json = {"dir": path, "names": names}
-        r = self._sync_client.post(
-            url=post_url, headers=post_headers, json=post_json, timeout=self.timeout
-        )
-
-        # 获取请求结果
-        return r.json()
+        return httpx.Request("POST", post_url, headers=post_headers, json=post_json)
 
 
 class TMDBApi:
@@ -443,25 +166,20 @@ class TMDBApi:
     TMDB api官方说明文档(https://developers.themoviedb.org/3)
     """
 
-    def __init__(self, api_url: str, api_key: str, sync_client=None):
+    def __init__(self, api_key: str, api_url: str = "https://api.themoviedb.org/3"):
         """
         初始化参数
 
         :param key: TMDB Api Key(V3)
+        :param url: TMDB Api URL
         """
 
-        # self.api_url = "https://api.themoviedb.org/3"
         self.api_url = api_url
         self.api_key = api_key
         self.timeout = 10
 
-        self._sync_client = sync_client or httpx.Client()
-
-    @HandleException.raise_error
-    @Output.output_tmdb_tv_info
-    @HandleException.catch_api_exceptions
-    @ApiResponse.tmdb_api_response
-    def tv_info(self, tv_id: str, language: str = "zh-CN") -> tuple:
+    @ApiTask.create("tmdb", "tv_info", raise_error=True)
+    def tv_info(self, tv_id: str, language: str = "zh-CN") -> httpx.Request:
         """
         根据提供的id获取剧集信息.
 
@@ -473,15 +191,10 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
-        # 获取请求结果
-        return r.json(), r.status_code
+        return httpx.Request("GET", post_url, params=post_params)
 
-    @HandleException.raise_error
-    @Output.output_tmdb_search_tv
-    @HandleException.catch_api_exceptions
-    @ApiResponse.tmdb_api_response
-    def search_tv(self, keyword: str, language: str = "zh-CN") -> tuple:
+    @ApiTask.create("tmdb", "search_tv", raise_error=True)
+    def search_tv(self, keyword: str, language: str = "zh-CN") -> httpx.Request:
         """
         根据关键字匹配剧集, 获取相关信息.
 
@@ -493,18 +206,12 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/tv"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        return httpx.Request("GET", post_url, params=post_params)
 
-        # 获取请求结果
-        return r.json(), r.status_code
-
-    @HandleException.raise_error
-    @Output.output_tmdb_tv_season_info
-    @HandleException.catch_api_exceptions
-    @ApiResponse.tmdb_api_response
+    @ApiTask.create("tmdb", "tv_season_info", raise_error=True)
     def tv_season_info(
         self, tv_id: str, season_number: int, language: str = "zh-CN"
-    ) -> tuple:
+    ) -> httpx.Request:
         """
         获取指定季度剧集信息.
         :param tv_id: 剧集id
@@ -516,16 +223,10 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/tv/{tv_id}/season/{season_number}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        return httpx.Request("GET", post_url, params=post_params)
 
-        # 获取请求结果
-        return r.json(), r.status_code
-
-    @HandleException.raise_error
-    @Output.output_tmdb_movie_info
-    @HandleException.catch_api_exceptions
-    @ApiResponse.tmdb_api_response
-    def movie_info(self, movie_id: str, language: str = "zh-CN") -> tuple:
+    @ApiTask.create("tmdb", "movie_info", raise_error=True)
+    def movie_info(self, movie_id: str, language: str = "zh-CN") -> httpx.Request:
         """
         根据提供的id获取电影信息.
 
@@ -538,16 +239,10 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/movie/{movie_id}"
         post_params = {"api_key": self.api_key, "language": language}
-        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
+        return httpx.Request("GET", post_url, params=post_params)
 
-        # 获取请求结果
-        return r.json(), r.status_code
-
-    @HandleException.raise_error
-    @Output.output_tmdb_search_movie
-    @HandleException.catch_api_exceptions
-    @ApiResponse.tmdb_api_response
-    def search_movie(self, keyword: str, language: str = "zh-CN") -> tuple:
+    @ApiTask.create("tmdb", "search_movie", raise_error=True)
+    def search_movie(self, keyword: str, language: str = "zh-CN") -> httpx.Request:
         """
         根据关键字匹配电影, 获取相关信息.
 
@@ -559,7 +254,4 @@ class TMDBApi:
         # 发送请求
         post_url = f"{self.api_url}/search/movie"
         post_params = {"api_key": self.api_key, "query": keyword, "language": language}
-        r = self._sync_client.get(post_url, params=post_params, timeout=self.timeout)
-
-        # 获取请求结果
-        return r.json(), r.status_code
+        return httpx.Request("GET", post_url, params=post_params)

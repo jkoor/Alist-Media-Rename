@@ -1,6 +1,6 @@
 import re
 from typing import Optional
-from pydantic import BaseModel, field_validator, model_validator, ConfigDict, Field
+from pydantic import BaseModel, field_validator, model_validator, Field
 
 
 class AlistConfig(BaseModel):
@@ -202,6 +202,7 @@ class RenameTask(BaseModel):
     original_name: str = ""  # 原始文件名
     target_name: str = ""  # 目标文件名
     folder_path: Folder = Folder()  # 文件夹路径
+    full_path: str = ""  # 重命名文件路径
 
     @model_validator(mode="after")
     # 提取参数
@@ -209,6 +210,7 @@ class RenameTask(BaseModel):
         self.original_name = self.file_meta.filename
         self.target_name = self.media_meta.fullname + self.file_meta.extension
         self.folder_path = self.file_meta.folder_path
+        self.full_path = self.folder_path.path + self.original_name
         return self
 
 
@@ -217,46 +219,6 @@ class ApiResponse(BaseModel):
     status_code: int
     error: str
     data: dict
-
-
-class ApiResonses(BaseModel):
-    """API响应"""
-
-    class TV(BaseModel):
-        tv_id: str = ""
-        keyword: str = ""
-        folder_path: Folder = Folder()
-
-        model_config = ConfigDict(validate_assignment=True)  # 开启动态验证
-
-        result_file_list: Optional[ApiResponse]
-        result_tv_info: Optional[ApiResponse]
-        result_tv_season_info: Optional[ApiResponse]
-
-        @field_validator("tv_id", mode="before")
-        @classmethod
-        def tv_id_to_string(cls, tv_id) -> str:
-            """转换tv_id为字符串"""
-            return str(tv_id)
-
-    class Movie(BaseModel):
-        movie_id: str = ""
-        keyword: str = ""
-        folder_path: Folder = Folder()
-
-        model_config = ConfigDict(validate_assignment=True)  # 开启动态验证
-
-        result_file_list: Optional[ApiResponse]
-        result_movie_info: Optional[ApiResponse]
-
-        @field_validator("movie_id", mode="before")
-        @classmethod
-        def tv_id_to_string(cls, movie_id) -> str:
-            """转换movie_id为字符串"""
-            return str(movie_id)
-
-    tv: TV = TV(result_file_list=None, result_tv_info=None, result_tv_season_info=None)
-    movie: Movie = Movie(result_file_list=None, result_movie_info=None)
 
 
 class ApiResponseError(Exception):

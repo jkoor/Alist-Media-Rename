@@ -6,7 +6,7 @@ from typing import Any, Callable, Coroutine
 import httpx
 
 from .models import ApiResponse, ApiResponseError
-from .output_copy import OutputParser
+from .output import OutputParser, console
 
 
 class CatchException:
@@ -83,6 +83,15 @@ class ApiTask:
 
         # 返回匹配结果
         return matched_args
+
+    @property
+    def model_dump(self) -> dict:
+        """返回模型信息"""
+        return {
+            "func": self.func,
+            "args": self.args,
+            "response": self.response,
+        }
 
     def send_request_sync(self, client=httpx.Client()) -> ApiResponse:
         """同步发送网络请求"""
@@ -221,6 +230,7 @@ class TaskManager:
         self._async_client = httpx.AsyncClient()
         self.tasks_pending: list[ApiTask] = []
         self.tasks_done: list[ApiTask] = []
+        self.tasks_recently: list[ApiTask] = []
 
         self.verbose = verbose
 
@@ -239,10 +249,15 @@ class TaskManager:
 
     def run_tasks(self, async_: bool = False) -> list[ApiResponse]:
         """运行任务"""
+        self.tasks_recently = self.tasks_pending.copy()
         if async_:
-            return self.run_async()
+            result = self.run_async()
         else:
-            return self.run_sync()
+            result = self.run_sync()
+        if self.verbose:
+            for task in self.tasks_recently:
+                console.print(task.model_dump)
+        return result
 
     def run_sync(self) -> list[ApiResponse]:
         """同步运行所有任务"""
@@ -269,10 +284,10 @@ class TaskManager:
             self.tasks_pending.clear()  # 清空任务列表
             return results
 
-        # loop = asyncio.get_event_loop()  # 获取当前事件循环
-        # results = loop.run_until_complete(async_run())  # 在当前事件循环中运行异步任务
-        # return results
-        return asyncio.run(async_run())
+        # return asyncio.run(async_run())
+        loop = asyncio.get_event_loop()  # 获取当前事件循环
+        results = loop.run_until_complete(async_run())  # 在当前事件循环中运行异步任务
+        return results
 
 
 taskManager = TaskManager()

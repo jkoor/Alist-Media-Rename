@@ -68,7 +68,7 @@ def start(
     """
 
     # 初始化
-    amr = Amr(config)
+    amr = Amr(config, verbose=verbose)
     if folder is not None:
         amr.config.settings.amr.media_folder_rename = folder
 

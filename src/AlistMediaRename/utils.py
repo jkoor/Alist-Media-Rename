@@ -1,7 +1,9 @@
 import re
 from natsort import natsorted
+
+from AlistMediaRename.models import ApiResponse
+from .config import Config
 from .models import MediaMeta, Formated_Variables, FileMeta, RenameTask, Folder
-from .output import Output
 from .task import ApiTask
 
 
@@ -53,7 +55,11 @@ class Utils:
 class Helper:
     @staticmethod
     def create_tv_media_list(
-        first_number: str, task_2_tv_info: ApiTask, task_3_tv_season_info: ApiTask
+        first_number: str,
+        task_2_tv_info: ApiTask,
+        task_3_tv_season_info: ApiTask,
+        tmdb_id: str,
+        config: Config,
     ) -> tuple[list[MediaMeta], list[MediaMeta]]:
         """创建媒体元数据"""
 
@@ -68,7 +74,7 @@ class Helper:
             rating=task_2_tv_info.response.data["vote_average"],
             season=task_3_tv_season_info.response.data["season_number"],
             season_year=task_3_tv_season_info.response.data["air_date"][:4],
-            tmdb_id=self.amr._data.tv.tv_id,
+            tmdb_id=tmdb_id,
         )
         # 创建媒体元数据列表
         indexs: list[int] = Utils.parse_page_ranges(
@@ -90,7 +96,7 @@ class Helper:
             media_list.append(
                 MediaMeta(
                     media_type="tv",
-                    rename_format=self.amr.config.amr.tv_name_format,
+                    rename_format=config.amr.tv_name_format,
                     movie_format_variables=None,
                     tv_format_variables=fv_tv,
                     episode_format_variables=fv_episode,
@@ -100,8 +106,8 @@ class Helper:
         # 创建文件夹媒体元数据列表
         folder_media_list: list[MediaMeta] = [
             MediaMeta(
-                media_type=media_type,
-                rename_format=self.amr.config.amr.tv_folder_name_format,
+                media_type="tv",
+                rename_format=config.amr.tv_folder_name_format,
                 movie_format_variables=None,
                 tv_format_variables=fv_tv,
                 episode_format_variables=None,
@@ -110,174 +116,78 @@ class Helper:
 
         return media_list, folder_media_list
 
-    def create_media_list(
-        self, media_type: str, first_number: str
+    @staticmethod
+    def create_movie_media_list(
+        task_2_movie_info: ApiTask,
+        tmdb_id: str,
+        config: Config,
     ) -> tuple[list[MediaMeta], list[MediaMeta]]:
         """创建媒体元数据"""
 
-        if media_type == "tv":
-            # 检查是否有数据
-            if (
-                self.amr._data.tv.result_tv_info is None
-                or self.amr._data.tv.result_tv_season_info is None
-            ):
-                raise ValueError("result_tv_info is None")
-            # 创建格式化变量
-            fv_tv = Formated_Variables.tv(
-                name=self.amr._data.tv.result_tv_info.response["name"],
-                original_name=self.amr._data.tv.result_tv_info.response[
-                    "original_name"
-                ],
-                year=self.amr._data.tv.result_tv_info.response["first_air_date"][:4],
-                first_air_date=self.amr._data.tv.result_tv_info.response[
-                    "first_air_date"
-                ],
-                language=self.amr._data.tv.result_tv_info.response["original_language"],
-                region=self.amr._data.tv.result_tv_info.response["origin_country"][0],
-                rating=self.amr._data.tv.result_tv_info.response["vote_average"],
-                season=self.amr._data.tv.result_tv_season_info.response[
-                    "season_number"
-                ],
-                season_year=self.amr._data.tv.result_tv_season_info.response[
-                    "air_date"
-                ][:4],
-                tmdb_id=self.amr._data.tv.tv_id,
-            )
-            # 创建媒体元数据列表
-            indexs: list[int] = Utils.parse_page_ranges(
-                first_number,
-                len(self.amr._data.tv.result_tv_season_info.response["episodes"]),
-            )
-            media_list: list[MediaMeta] = []
-            for ep in self.amr._data.tv.result_tv_season_info.response["episodes"]:
-                if ep["episode_number"] not in indexs:
-                    continue
-
-                # 创建格式化变量
-                fv_episode = Formated_Variables.episode(
-                    episode=ep["episode_number"],
-                    air_date=ep["air_date"],
-                    episode_rating=ep["vote_average"],
-                    title=ep["name"],
-                )
-                media_list.append(
-                    MediaMeta(
-                        media_type=media_type,
-                        rename_format=self.amr.config.amr.tv_name_format,
-                        movie_format_variables=None,
-                        tv_format_variables=fv_tv,
-                        episode_format_variables=fv_episode,
-                    )
-                )
-
-            # 创建文件夹媒体元数据列表
-            folder_media_list: list[MediaMeta] = [
+        # 创建格式化变量
+        fv_movie = Formated_Variables.movie(
+            name=task_2_movie_info.response.data["title"],
+            original_name=task_2_movie_info.response.data["original_title"],
+            year=task_2_movie_info.response.data["release_date"][:4],
+            release_date=task_2_movie_info.response.data["release_date"],
+            language=task_2_movie_info.response.data["original_language"],
+            region=task_2_movie_info.response.data["origin_country"][0],
+            rating=task_2_movie_info.response.data["vote_average"],
+            tmdb_id=tmdb_id,
+        )
+        # 创建媒体元数据列表
+        indexs: list[int] = [1]
+        media_list: list[MediaMeta] = []
+        for i in indexs:
+            media_list.append(
                 MediaMeta(
-                    media_type=media_type,
-                    rename_format=self.amr.config.amr.tv_folder_name_format,
-                    movie_format_variables=None,
-                    tv_format_variables=fv_tv,
-                    episode_format_variables=None,
-                )
-            ]
-        else:
-            # 检查是否有数据
-            if self.amr._data.movie.result_movie_info is None:
-                raise ValueError("result_movie_info is None")
-            # 创建格式化变量
-            fv_movie = Formated_Variables.movie(
-                name=self.amr._data.movie.result_movie_info.response["title"],
-                original_name=self.amr._data.movie.result_movie_info.response[
-                    "original_title"
-                ],
-                year=self.amr._data.movie.result_movie_info.response["release_date"][
-                    :4
-                ],
-                release_date=self.amr._data.movie.result_movie_info.response[
-                    "release_date"
-                ],
-                language=self.amr._data.movie.result_movie_info.response[
-                    "original_language"
-                ],
-                region=self.amr._data.movie.result_movie_info.response[
-                    "origin_country"
-                ][0],
-                rating=self.amr._data.movie.result_movie_info.response["vote_average"],
-                tmdb_id=self.amr._data.movie.movie_id,
-            )
-            # 创建媒体元数据列表
-            indexs: list[int] = [1]
-            media_list: list[MediaMeta] = []
-            for i in indexs:
-                media_list.append(
-                    MediaMeta(
-                        media_type=media_type,
-                        rename_format=self.amr.config.amr.movie_name_format,
-                        movie_format_variables=fv_movie,
-                        tv_format_variables=None,
-                        episode_format_variables=None,
-                    )
-                )
-            # 创建文件夹媒体元数据列表
-            folder_media_list: list[MediaMeta] = [
-                MediaMeta(
-                    media_type=media_type,
-                    rename_format=self.amr.config.amr.tv_folder_name_format,
+                    media_type="movie",
+                    rename_format=config.amr.movie_name_format,
                     movie_format_variables=fv_movie,
                     tv_format_variables=None,
                     episode_format_variables=None,
                 )
-            ]
+            )
+        # 创建文件夹媒体元数据列表
+        folder_media_list: list[MediaMeta] = [
+            MediaMeta(
+                media_type="movie",
+                rename_format=config.amr.tv_folder_name_format,
+                movie_format_variables=fv_movie,
+                tv_format_variables=None,
+                episode_format_variables=None,
+            )
+        ]
 
         return media_list, folder_media_list
 
+    @staticmethod
     def create_file_list(
-        self, media_type: str
+        task_1_file_list: ApiTask,
+        folder_path: Folder,
+        config: Config,
     ) -> tuple[list[FileMeta], list[FileMeta]]:
         """创建文件列表"""
 
-        result_file_list = (
-            self.amr._data.movie.result_file_list
-            if media_type == "movie"
-            else self.amr._data.tv.result_file_list
-        )
-        folder_path = (
-            self.amr._data.movie.folder_path
-            if media_type == "movie"
-            else self.amr._data.tv.folder_path
-        )
-
-        if result_file_list is None:
-            raise ValueError("result_file_list is None")
+        result_file_list: ApiResponse = task_1_file_list.response
 
         file_list: list[str] = list(
-            map(lambda x: x["name"], result_file_list.response["content"])
+            map(lambda x: x["name"], result_file_list.data["content"])
         )
 
         video_file_list: list[FileMeta] = [
             FileMeta(filename=file, folder_path=folder_path)
-            for file in Utils.filter_file(
-                file_list, self.amr.config.amr.video_regex_pattern
-            )
+            for file in Utils.filter_file(file_list, config.amr.video_regex_pattern)
         ]
         subtitle_file_list: list[FileMeta] = [
             FileMeta(filename=file, folder_path=folder_path)
-            for file in Utils.filter_file(
-                file_list, self.amr.config.amr.subtitle_regex_pattern
-            )
+            for file in Utils.filter_file(file_list, config.amr.subtitle_regex_pattern)
         ]
         return video_file_list, subtitle_file_list
 
     @staticmethod
-    def get_season_number(task_2_tv_info: ApiTask) -> int:
-        """获取季度编号"""
-        length = len(task_2_tv_info.response.data["seasons"])
-        index = Output.select_number(length)
-        season_number = task_2_tv_info.response.data["seasons"][index]["season_number"]
-        return season_number
-
     def match_episode_files(
-        self, media_list: list[MediaMeta], file_list: list[FileMeta]
+        media_list: list[MediaMeta], file_list: list[FileMeta], config: Config
     ) -> list[RenameTask]:
         """匹配文件"""
 
@@ -317,22 +227,13 @@ class Helper:
         for file, meida in zip(file_list, media_list):
             rename_list_all.append(RenameTask(media_meta=media, file_meta=file))
 
-        return (
-            rename_list_no_matched
-            if self.amr.config.amr.exclude_renamed
-            else rename_list_all
-        )
+        return rename_list_no_matched if config.amr.exclude_renamed else rename_list_all
 
+    @staticmethod
     def create_folder_rename_list(
-        self, folder_media_list: list[MediaMeta], media_type: str
+        folder_path: Folder, folder_media_list: list[MediaMeta]
     ) -> list[RenameTask]:
         """创建文件夹重命名列表"""
-
-        folder_path = (
-            self.amr._data.movie.folder_path
-            if media_type == "movie"
-            else self.amr._data.tv.folder_path
-        )
 
         file: FileMeta = FileMeta(
             filename=folder_path.current_path(),
