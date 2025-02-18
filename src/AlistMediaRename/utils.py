@@ -1,43 +1,25 @@
 import re
-from typing import Union
 from natsort import natsorted
-from .models import RenameTask
+
+from AlistMediaRename.models import ApiResponse
+from .config import Config
+from .models import MediaMeta, Formated_Variables, FileMeta, RenameTask, Folder
+from .task import ApiTask
 
 
-class Tools:
+class Utils:
     """
     工具函数类
     """
 
     @staticmethod
-    def ensure_slash(path: str) -> str:
-        """确保路径以 / 开头并以 / 结尾"""
-        if not path.startswith("/"):
-            path = "/" + path
-        if not path.endswith("/"):
-            path = path + "/"
-        return path
-
-    @staticmethod
-    def get_parent_path(path: str) -> str:
-        """获取父目录路径"""
-        path = Tools.ensure_slash(path)
-        return path[: path[:-1].rfind("/") + 1]
-
-    @staticmethod
-    def get_current_path(path: str) -> str:
-        """获取当前目录名称"""
-        path = Tools.ensure_slash(path)
-        return path.split("/")[-2]
-
-    @staticmethod
-    def filter_file(file_list: list, pattern: str) -> list:
+    def filter_file(file_list: list[str], pattern: str) -> list[str]:
         """筛选列表，并以自然排序返回"""
 
         return natsorted([file for file in file_list if re.match(pattern, file)])
 
     @staticmethod
-    def parse_page_ranges(page_ranges: str, total_pages: int) -> list:
+    def parse_page_ranges(page_ranges: str, total_pages: int) -> list[int]:
         """
         解析分页格式的字符串，并返回一个包含所有项的列表。
 
@@ -69,93 +51,196 @@ class Tools:
         pages = sorted(set(pages))
         return pages
 
+
+class Helper:
+    @staticmethod
+    def create_tv_media_list(
+        first_number: str,
+        task_2_tv_info: ApiTask,
+        task_3_tv_season_info: ApiTask,
+        tmdb_id: str,
+        config: Config,
+    ) -> tuple[list[MediaMeta], list[MediaMeta]]:
+        """创建媒体元数据"""
+
+        # 创建格式化变量
+        fv_tv = Formated_Variables.tv(
+            name=task_2_tv_info.response.data["name"],
+            original_name=task_2_tv_info.response.data["original_name"],
+            year=task_2_tv_info.response.data["first_air_date"][:4],
+            first_air_date=task_2_tv_info.response.data["first_air_date"],
+            language=task_2_tv_info.response.data["original_language"],
+            region=task_2_tv_info.response.data["origin_country"][0],
+            rating=task_2_tv_info.response.data["vote_average"],
+            season=task_3_tv_season_info.response.data["season_number"],
+            season_year=task_3_tv_season_info.response.data["air_date"][:4],
+            tmdb_id=tmdb_id,
+        )
+        # 创建媒体元数据列表
+        indexs: list[int] = Utils.parse_page_ranges(
+            first_number,
+            len(task_3_tv_season_info.response.data["episodes"]),
+        )
+        media_list: list[MediaMeta] = []
+        for ep in task_3_tv_season_info.response.data["episodes"]:
+            if ep["episode_number"] not in indexs:
+                continue
+
+            # 创建格式化变量
+            fv_episode = Formated_Variables.episode(
+                episode=ep["episode_number"],
+                air_date=ep["air_date"],
+                episode_rating=ep["vote_average"],
+                title=ep["name"],
+            )
+            media_list.append(
+                MediaMeta(
+                    media_type="tv",
+                    rename_format=config.amr.tv_name_format,
+                    movie_format_variables=None,
+                    tv_format_variables=fv_tv,
+                    episode_format_variables=fv_episode,
+                )
+            )
+
+        # 创建文件夹媒体元数据列表
+        folder_media_list: list[MediaMeta] = [
+            MediaMeta(
+                media_type="tv",
+                rename_format=config.amr.tv_folder_name_format,
+                movie_format_variables=None,
+                tv_format_variables=fv_tv,
+                episode_format_variables=None,
+            )
+        ]
+
+        return media_list, folder_media_list
+
+    @staticmethod
+    def create_movie_media_list(
+        task_2_movie_info: ApiTask,
+        tmdb_id: str,
+        config: Config,
+    ) -> tuple[list[MediaMeta], list[MediaMeta]]:
+        """创建媒体元数据"""
+
+        # 创建格式化变量
+        fv_movie = Formated_Variables.movie(
+            name=task_2_movie_info.response.data["title"],
+            original_name=task_2_movie_info.response.data["original_title"],
+            year=task_2_movie_info.response.data["release_date"][:4],
+            release_date=task_2_movie_info.response.data["release_date"],
+            language=task_2_movie_info.response.data["original_language"],
+            region=task_2_movie_info.response.data["origin_country"][0],
+            rating=task_2_movie_info.response.data["vote_average"],
+            tmdb_id=tmdb_id,
+        )
+        # 创建媒体元数据列表
+        indexs: list[int] = [1]
+        media_list: list[MediaMeta] = []
+        for i in indexs:
+            media_list.append(
+                MediaMeta(
+                    media_type="movie",
+                    rename_format=config.amr.movie_name_format,
+                    movie_format_variables=fv_movie,
+                    tv_format_variables=None,
+                    episode_format_variables=None,
+                )
+            )
+        # 创建文件夹媒体元数据列表
+        folder_media_list: list[MediaMeta] = [
+            MediaMeta(
+                media_type="movie",
+                rename_format=config.amr.tv_folder_name_format,
+                movie_format_variables=fv_movie,
+                tv_format_variables=None,
+                episode_format_variables=None,
+            )
+        ]
+
+        return media_list, folder_media_list
+
+    @staticmethod
+    def create_file_list(
+        task_1_file_list: ApiTask,
+        folder_path: Folder,
+        config: Config,
+    ) -> tuple[list[FileMeta], list[FileMeta]]:
+        """创建文件列表"""
+
+        result_file_list: ApiResponse = task_1_file_list.response
+
+        file_list: list[str] = list(
+            map(lambda x: x["name"], result_file_list.data["content"])
+        )
+
+        video_file_list: list[FileMeta] = [
+            FileMeta(filename=file, folder_path=folder_path)
+            for file in Utils.filter_file(file_list, config.amr.video_regex_pattern)
+        ]
+        subtitle_file_list: list[FileMeta] = [
+            FileMeta(filename=file, folder_path=folder_path)
+            for file in Utils.filter_file(file_list, config.amr.subtitle_regex_pattern)
+        ]
+        return video_file_list, subtitle_file_list
+
     @staticmethod
     def match_episode_files(
-        original_list: list[str],
-        target_list: list[str],
-        folder_path: str,
-        exclude_renamed: bool,
-        first_number: str = "1",
+        media_list: list[MediaMeta], file_list: list[FileMeta], config: Config
     ) -> list[RenameTask]:
         """匹配文件"""
 
-        # 创建重命名列表
-        rename_list_no_filter: list[RenameTask] = []
+        # 创建完整列表
+        rename_list_all: list[RenameTask] = []
+        # 文件名已符合要求，不需要重命名的列表
+        rename_list_matched: list[RenameTask] = []
         # 创建排除已重命名的列表
-        rename_list_filter: list[RenameTask] = []
+        rename_list_no_matched: list[RenameTask] = []
 
-        # 创建hash表和队列
-        rename_list: list[RenameTask] = [RenameTask()] * len(target_list)
-        target_dict: dict[str, int] = {item: i for i, item in enumerate(target_list)}
-        queue = []
+        # 创建待重命名队列
+        pending_file_list: list[FileMeta] = []
+        pending_media_list: list[MediaMeta] = media_list.copy()
 
         # 优先匹配已重命名的文件
-        for i, item in enumerate(original_list):
-            if item.rsplit(".", 1)[0] in target_list:
-                rename_list[target_dict[item.rsplit(".", 1)[0]]] = RenameTask(
-                    original_name=item, target_name=item, folder_path=folder_path
-                )
+        for i, file in enumerate(file_list):
+            is_matched = False
+            j = -1
+            for _, media in enumerate(pending_media_list):
+                if file.prefix_name == media.fullname:
+                    rename_list_matched.append(
+                        RenameTask(media_meta=media, file_meta=file)
+                    )
+                    is_matched = True
+                    j = _
+                    break
+            if is_matched:
+                pending_media_list.pop(j)
             else:
-                queue.append(item)
+                pending_file_list.append(file)
 
         # 匹配未重命名的文件
-        for i in range(len(target_list)):
-            if rename_list[i] != RenameTask():
-                rename_list_no_filter.append(rename_list[i])
-            if (
-                rename_list[i] == RenameTask()
-                and len(queue) > 0
-                and i + 1 in Tools.parse_page_ranges(first_number, len(target_list))
-            ):
-                original_name: str = queue.pop(0)
-                target_name = target_list[i] + "." + original_name.rsplit(".", 1)[1]
-                rename_list_no_filter.append(
-                    RenameTask(
-                        original_name=original_name,
-                        target_name=target_name,
-                        folder_path=folder_path,
-                    )
-                )
-                rename_list_filter.append(
-                    RenameTask(
-                        original_name=original_name,
-                        target_name=target_name,
-                        folder_path=folder_path,
-                    )
-                )
+        for file, meida in zip(pending_file_list, pending_media_list):
+            rename_list_no_matched.append(RenameTask(media_meta=meida, file_meta=file))
 
-        return rename_list_filter if exclude_renamed else rename_list_no_filter
+        # 匹配全部文件
+        for file, meida in zip(file_list, media_list):
+            rename_list_all.append(RenameTask(media_meta=media, file_meta=file))
+
+        return rename_list_no_matched if config.amr.exclude_renamed else rename_list_all
 
     @staticmethod
-    def get_argument(
-        arg_index: int, kwarg_name: str, args: Union[list, tuple], kwargs: dict
-    ) -> str:
-        """获取参数"""
-        if len(args) > arg_index:
-            return args[arg_index]
-        return kwargs[kwarg_name]
+    def create_folder_rename_list(
+        folder_path: Folder, folder_media_list: list[MediaMeta]
+    ) -> list[RenameTask]:
+        """创建文件夹重命名列表"""
 
-    @staticmethod
-    def get_renamed_folder_title(
-        tv_info_result, tv_season_info, folder_path, rename_type, tv_season_format
-    ) -> str:
-        """文件夹重命名类型"""
-        if rename_type == 1:
-            renamed_folder_title = (
-                f"{tv_info_result['name']} ({tv_info_result['first_air_date'][:4]})"
-            )
-        elif rename_type == 2:
-            renamed_folder_title = tv_season_format.format(
-                season=tv_season_info["season_number"],
-                name=tv_info_result["name"],
-                year=tv_info_result["first_air_date"][:4],
-            )
-        else:
-            renamed_folder_title = ""
-        return renamed_folder_title
+        file: FileMeta = FileMeta(
+            filename=folder_path.current_path(),
+            folder_path=Folder(path=folder_path.parent_path()),
+        )
+        folder_rename_list: list[RenameTask] = [
+            RenameTask(media_meta=media, file_meta=file) for media in folder_media_list
+        ]
 
-    @staticmethod
-    def replace_illegal_char(filename: str, extend=True) -> str:
-        """替换非法字符"""
-        illegal_char = r"[\/:*?\"<>|]" if extend else r"[/]"
-        return re.sub(illegal_char, "_", filename)
+        return folder_rename_list

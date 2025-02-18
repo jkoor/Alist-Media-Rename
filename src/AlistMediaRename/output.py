@@ -1,19 +1,22 @@
-from functools import wraps
-from typing import Any, Union, Callable
+from typing import Callable
 from rich import box
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
-from .models import ApiResponseModel, RenameTask
-from .utils import Tools
+from .models import RenameTask
+import sys
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from .api import ApiTask
 
 console = Console()
 
 
 class UserExit(Exception):
     pass
+    # sys.exit(0)
 
 
 class Message:
@@ -84,7 +87,8 @@ class Message:
 
     @staticmethod
     def exit():
-        raise UserExit("用户主动退出")
+        # raise UserExit("用户主动退出")
+        sys.exit(1)
 
     @staticmethod
     def question(message: str, printf: bool = True):
@@ -101,327 +105,12 @@ class Message:
         # t.highlight_regex(r"[^.]+(?=\.\w+$)", "magenta")
         return t
 
-
-class Output:
-    """打印消息类"""
-
-    @staticmethod
-    def output_alist_login(func) -> Callable[..., ApiResponseModel]:
-        """
-        输出登录状态信息
-        """
-
-        @wraps(func)
-        def wrapper(self, *args, **kwargs) -> ApiResponseModel:
-            login_result: ApiResponseModel = func(self, *args, **kwargs)
-
-            # 输出获取Token结果
-            if login_result.success:
-                Message.success(f"主页: {self.url}")
-            else:
-                # Message.error(f"登录失败\t{login_result.error}")
-                Message.error(f"登录失败: {self.url}")
-            return login_result
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_file_list(func) -> Callable[..., ApiResponseModel]:
-        """输出文件信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 输出结果
-            if not return_data.success:
-                Message.error(
-                    f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}"
-                )
-                # Message.error(
-                #     f"获取文件列表失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
-                # )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_rename(func):
-        """输出重命名信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data = func(*args, **kwargs)
-
-            # 输出重命名结果
-            # if return_data["message"] != "success":
-            #     Message.error(
-            #         f"重命名失败: {Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}\n{return_data.error}"
-            #     )
-            # else:
-            #     Message.success(
-            #         f"重命名路径:{Tools.get_argument(2, 'path', args, kwargs).split('/')[-1]} -> {Tools.get_argument(1, 'name', args, kwargs)}"
-            #     )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_move(func) -> Callable[..., ApiResponseModel]:
-        """输出文件移动信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 输出移动结果
-            if not return_data.success:
-                # Message.error(
-                #     f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"移动失败: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}"
-                )
-            else:
-                Message.success(
-                    f"移动路径: {Tools.get_argument(2, 'src_dir', args, kwargs)} -> {Tools.get_argument(3, 'dst_dir', args, kwargs)}"
-                )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_mkdir(func) -> Callable[..., ApiResponseModel]:
-        """输出新建文件/文件夹信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 输出新建文件夹请求结果
-            if not return_data.success:
-                # Message.error(
-                #     f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"文件夹创建失败: {Tools.get_argument(1, 'path', args, kwargs)}"
-                )
-            else:
-                Message.success(
-                    f"文件夹创建路径: {Tools.get_argument(1, 'path', args, kwargs)}"
-                )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_alist_remove(func) -> Callable[..., ApiResponseModel]:
-        """输出文件/文件夹删除信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 输出删除文件/文件夹请求结果
-            if not return_data.success:
-                # Message.error(
-                #     f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"删除失败: {Tools.get_argument(1, 'path', args, kwargs)}"
-                )
-            else:
-                for name in Tools.get_argument(2, "name", args, kwargs):
-                    Message.success(
-                        f"删除路径: {Tools.get_argument(1, 'path', args, kwargs)}/{name}"
-                    )
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_tmdb_tv_info(func) -> Callable[..., ApiResponseModel]:
-        """输出剧集信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponseModel:
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(f"tv_id: {Tools.get_argument(1, 'tv_id', args, kwargs)}")
-                return return_data
-
-            # 格式化输出请求结果
-            first_air_year = return_data.data["first_air_date"][:4]
-            name = return_data.data["name"]
-            dir_name = f"{name} ({first_air_year})"
-            Message.success(dir_name)
-            seasons = return_data.data["seasons"]
-            table = Table(box=box.SIMPLE)
-            table.add_column("开播时间", justify="center", style="cyan")
-            table.add_column("集数", justify="center", style="magenta")
-            table.add_column("序号", justify="center", style="green")
-            table.add_column("剧名", justify="left", no_wrap=True)
-            # table.add_column(footer="共计: " + str(len(seasons)), style="grey53")
-            for i, season in enumerate(seasons):
-                table.add_row(
-                    season["air_date"],
-                    str(season["episode_count"]),
-                    str(i),
-                    season["name"],
-                )
-            console.print(table)
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_tmdb_search_tv(func):
-        """输出查找剧集信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}"
-                )
-                return return_data
-
-            Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
-            table = Table(box=box.SIMPLE)
-            table.add_column("开播时间", justify="center", style="cyan")
-            table.add_column("序号", justify="center", style="green")
-            table.add_column("剧名", justify="left", no_wrap=True)
-            # table.add_column(
-            #     footer="共计: " + str(len(return_data["results"])), style="grey53"
-            # )
-            for i, r in enumerate(return_data.data["results"]):
-                table.add_row(r["first_air_date"], str(i), r["name"])
-            console.print(table)
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_tmdb_tv_season_info(func):
-        """输出剧集季度信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"剧集id: {Tools.get_argument(1, 'tv_id', args, kwargs)}\t第 {Tools.get_argument(2, 'season_number', args, kwargs)} 季"
-                )
-
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_tmdb_movie_info(func):
-        """输出电影信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}\n   {return_data.error}"
-                # )
-                Message.error(
-                    f"tv_id: {Tools.get_argument(1, 'movie_id', args, kwargs)}"
-                )
-                return return_data
-
-            # 格式化输出请求结果
-            Message.success(
-                f"{return_data.data['title']} {return_data.data['release_date']}"
-            )
-
-            console.print(f"[标语] {return_data.data['tagline']}")
-
-            console.print(f"[剧集简介] {return_data.data['overview']}")
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
-    @staticmethod
-    def output_tmdb_search_movie(func):
-        """输出查找电影信息"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return_data: ApiResponseModel = func(*args, **kwargs)
-
-            # 请求失败则输出失败信息
-            if not return_data.success:
-                # Message.error(
-                #     f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}\n{return_data.error}"
-                # )
-                Message.error(
-                    f"Keyword: {Tools.get_argument(1, 'keyword', args, kwargs)}"
-                )
-                return return_data
-
-            Message.success(f"关键词: {Tools.get_argument(1, 'keyword', args, kwargs)}")
-
-            table = Table(box=box.SIMPLE)
-            table.add_column("首播时间", justify="center", style="cyan")
-            table.add_column("序号", justify="center", style="green")
-            table.add_column("电影标题", justify="left", no_wrap=True)
-            # table.add_column(
-            #     footer="共计: " + str(len(return_data["results"])), style="grey53"
-            # )
-            for i, r in enumerate(return_data.data["results"]):
-                table.add_row(r["release_date"], str(i), r["title"])
-            console.print(table)
-
-            # 返回请求结果
-            return return_data
-
-        return wrapper
-
     @staticmethod
     def print_rename_info(
         video_rename_list: list[RenameTask],
         subtitle_rename_list: list[RenameTask],
+        folder_rename_list: list[RenameTask],
         folder_rename: bool,
-        renamed_folder_title: Union[str, None],
-        folder_path: str,
     ):
         """打印重命名信息"""
         if len(video_rename_list) > 0:
@@ -452,7 +141,7 @@ class Output:
             console.print(table)
         if folder_rename:
             Message.info(
-                f"文件夹重命名: [grey53]{folder_path.split('/')[-2]}[/grey53] [grey70]->[/grey70] {renamed_folder_title}"
+                f"文件夹重命名: [grey53]{folder_rename_list[0].original_name}[/grey53] [grey70]->[/grey70] {folder_rename_list[0].target_name}"
             )
 
     @staticmethod
@@ -471,10 +160,10 @@ class Output:
             return False
 
     @staticmethod
-    def select_number(result_list: list[Any]) -> int:
+    def select_number(length: int) -> int:
         """根据查询结果选择序号"""
         # 若查找结果只有一项，则无需选择，直接进行下一步
-        if len(result_list) == 1:
+        if length == 1:
             return 0
         else:
             while True:
@@ -488,39 +177,43 @@ class Output:
                 if number.lower() == "n":
                     Message.congratulation("See you!")
                     Message.exit()
-                if number.isdigit() and 0 <= int(number) < len(result_list):
+                if number.isdigit() and 0 <= int(number) < length:
                     return int(number)
 
     @staticmethod
     def print_rename_result(
-        results: list[ApiResponseModel],
-        video_count: int,
-        subtitle_count: int,
-        folder_count: int,
+        tasks_4_video_rename_list: list["ApiTask"],
+        tasks_4_subtitle_rename_list: list["ApiTask"],
+        tasks_4_folder_rename_list: list["ApiTask"],
+        folder_rename: bool,
     ):
         """打印重命名结果"""
 
+        video_count = len(tasks_4_video_rename_list)
         video_error_count = 0
+        subtitle_count = len(tasks_4_subtitle_rename_list)
         subtitle_error_count = 0
+        folder_count = len(tasks_4_folder_rename_list) if folder_rename else 0
         folder_error_count = 0
-        error_list: list[ApiResponseModel] = []
+        error_list: list["ApiTask"] = []
 
         # 统计视频重命名结果
-        for i in range(video_count):
-            if not results[i].success:
+        for task in tasks_4_video_rename_list:
+            if not task.response.success:
                 video_error_count += 1
-                error_list.append(results[i])
+                error_list.append(task)
 
         # 统计字幕重命名结果
-        for i in range(video_count, video_count + subtitle_count):
-            if not results[i].success:
+        for task in tasks_4_subtitle_rename_list:
+            if not task.response.success:
                 subtitle_error_count += 1
-                error_list.append(results[i])
+                error_list.append(task)
 
         # 统计文件夹重命名结果
-        if not results[-1].success:
-            folder_error_count += 1
-            error_list.append(results[-1])
+        for task in tasks_4_folder_rename_list:
+            if not task.response.success:
+                folder_error_count += 1
+                error_list.append(task)
 
         # 输出错误信息
         if video_error_count + subtitle_error_count + folder_error_count > 0:
@@ -529,12 +222,12 @@ class Output:
             table.add_column(" ", justify="left", style="grey70")
             table.add_column("目标文件名", justify="left")
             table.add_column("错误信息", justify="left")
-            for result in error_list:
+            for task in error_list:
                 table.add_row(
-                    result.args[1].split("/")[-1],
+                    task.args["path"].split("/")[-1],
                     "->",
-                    Message.text_regex(result.args[0]),
-                    result.error,
+                    Message.text_regex(task.args["name"]),
+                    task.response.error,
                 )
             console.print(table)
 
@@ -560,3 +253,220 @@ class Output:
 
         # 程序运行结束
         Message.congratulation("重命名完成")
+
+
+class OutputParser:
+    """打印消息类"""
+
+    @staticmethod
+    def parser(type: str) -> Callable[..., None]:
+        """设置解析器"""
+
+        PARSER_MAP = {
+            "slient": OutputParser.slient_output,
+            "default": OutputParser.default_output,
+            "login": OutputParser.output_alist_login,
+            "file_list": OutputParser.output_alist_file_list,
+            "rename": OutputParser.output_alist_rename,
+            "move": OutputParser.output_alist_move,
+            "mkdir": OutputParser.output_alist_mkdir,
+            "remove": OutputParser.output_alist_remove,
+            "tv_info": OutputParser.output_tmdb_tv_info,
+            "search_tv": OutputParser.output_tmdb_search_tv,
+            "tv_season_info": OutputParser.output_tmdb_tv_season_info,
+            "movie_info": OutputParser.output_tmdb_movie_info,
+            "search_movie": OutputParser.output_tmdb_search_movie,
+        }
+
+        if type in PARSER_MAP:
+            return PARSER_MAP[type]
+        else:
+            raise ValueError(f"OutputParser '{type}' not found")
+
+    @staticmethod
+    def slient_output(api_task: "ApiTask") -> None:
+        """静默输出"""
+        pass
+
+    @staticmethod
+    def default_output(api_task: "ApiTask") -> None:
+        """默认输出"""
+
+        # 输出请求结果
+        if api_task.response.success:
+            Message.success(f"请求成功: {api_task.args}")
+        else:
+            Message.error(f"请求失败: {api_task.args}\n   {api_task.response.error}")
+
+    @staticmethod
+    def output_alist_login(api_task: "ApiTask") -> None:
+        """
+        输出登录状态信息
+        """
+
+        # 输出获取Token结果
+        if api_task.response.success:
+            Message.success("登陆成功")
+        else:
+            Message.error("登录失败")
+
+    @staticmethod
+    def output_alist_file_list(api_task: "ApiTask") -> None:
+        """输出文件信息"""
+
+        # 输出结果
+        if not api_task.response.success:
+            Message.error(
+                f"获取文件列表失败: {api_task.args.get('path')}\n   {api_task.response.error}"
+            )
+
+    @staticmethod
+    def output_alist_rename(api_task: "ApiTask") -> None:
+        """输出重命名信息"""
+
+        pass
+        # 输出重命名结果
+        if not api_task.response.success:
+            Message.error(
+                f"重命名失败: {api_task.args.get('path', '').split('/')[-1]} -> {api_task.args.get('name')}"
+            )
+        else:
+            Message.success(
+                f"重命名路径: {api_task.args.get('path', '').split('/')[-1]} -> {api_task.args.get('name')}"
+            )
+
+    @staticmethod
+    def output_alist_move(api_task: "ApiTask") -> None:
+        """输出文件移动信息"""
+
+        # 输出移动结果
+        if api_task.response.success:
+            Message.success(
+                f"移动路径: {api_task.args.get('src_dir')} -> {api_task.args.get('dst_dir')}"
+            )
+        else:
+            Message.error(
+                f"移动失败: {api_task.args.get('src_dir')} -> {api_task.args.get('dst_dir')}"
+            )
+
+    @staticmethod
+    def output_alist_mkdir(api_task: "ApiTask") -> None:
+        """输出新建文件/文件夹信息"""
+
+        # 输出新建文件夹请求结果
+        if api_task.response.success:
+            Message.success(f"文件夹创建路径: {api_task.args.get('path')}")
+        else:
+            Message.error(f"文件夹创建失败: {api_task.args.get('path')}")
+
+    @staticmethod
+    def output_alist_remove(api_task: "ApiTask") -> None:
+        """输出文件/文件夹删除信息"""
+
+        # 输出删除文件/文件夹请求结果
+        if api_task.response.success:
+            for name in api_task.args.get("name", []):
+                Message.success(f"删除路径: {api_task.args.get('path')}/{name}")
+        else:
+            Message.error(f"删除失败: {api_task.args.get('path')}")
+
+    @staticmethod
+    def output_tmdb_tv_info(api_task: "ApiTask") -> None:
+        """输出剧集信息"""
+
+        # 请求失败则输出失败信息
+        if api_task.response.success:
+            # 格式化输出请求结果
+            first_air_year = api_task.response.data["first_air_date"][:4]
+            name = api_task.response.data["name"]
+            dir_name = f"{name} ({first_air_year})"
+            Message.success(dir_name)
+            seasons = api_task.response.data["seasons"]
+            table = Table(box=box.SIMPLE)
+            table.add_column("开播时间", justify="center", style="cyan")
+            table.add_column("集数", justify="center", style="magenta")
+            table.add_column("序号", justify="center", style="green")
+            table.add_column("剧名", justify="left", no_wrap=True)
+            # table.add_column(footer="共计: " + str(len(seasons)), style="grey53")
+            for i, season in enumerate(seasons):
+                table.add_row(
+                    season["air_date"],
+                    str(season["episode_count"]),
+                    str(i),
+                    season["name"],
+                )
+            console.print(table)
+        else:
+            Message.error(f"tv_id: {api_task.args.get('tv_id')}")
+
+    @staticmethod
+    def output_tmdb_search_tv(api_task: "ApiTask") -> None:
+        """输出查找剧集信息"""
+
+        # 输出请求结果
+        if api_task.response.success:
+            Message.success(f"关键词: {api_task.args.get('keyword')}")
+            table = Table(box=box.SIMPLE)
+            table.add_column("开播时间", justify="center", style="cyan")
+            table.add_column("TMDB ID", justify="center", style="magenta")
+            table.add_column("序号", justify="center", style="green")
+            table.add_column("剧名", justify="left", no_wrap=True)
+            # table.add_column(
+            #     footer="共计: " + str(len(return_data["results"])), style="grey53"
+            # )
+            for i, r in enumerate(api_task.response.data["results"]):
+                table.add_row(r["first_air_date"], str(r["id"]), str(i), r["name"])
+            console.print(table)
+        else:
+            Message.error(f"关键词: {api_task.args.get('keyword')}")
+
+    @staticmethod
+    def output_tmdb_tv_season_info(api_task: "ApiTask") -> None:
+        """输出剧集季度信息"""
+
+        # 请求失败则输出失败信息
+        if not api_task.response.success:
+            Message.error(
+                f"剧集id: {api_task.args.get('tv_id')}\t第 {api_task.args.get('season_number')} 季"
+            )
+
+    @staticmethod
+    def output_tmdb_movie_info(api_task: "ApiTask") -> None:
+        """输出电影信息"""
+
+        # 格式化输出请求结果
+        if api_task.response.success:
+            Message.success(
+                f"{api_task.response.data['title']} {api_task.response.data['release_date']}"
+            )
+
+            console.print(f"[标语] {api_task.response.data['tagline']}")
+
+            console.print(f"[剧集简介] {api_task.response.data['overview']}")
+
+        # 请求失败则输出失败信息
+        else:
+            Message.error(f"tv_id: {api_task.args.get('movie_id')}")
+
+    @staticmethod
+    def output_tmdb_search_movie(api_task: "ApiTask") -> None:
+        """输出查找电影信息"""
+
+        if api_task.response.success:
+            Message.success(f"关键词: {api_task.args.get('keyword')}")
+
+            table = Table(box=box.SIMPLE)
+            table.add_column("首映时间", justify="center", style="cyan")
+            table.add_column("TMDB ID", justify="center", style="magenta")
+            table.add_column("序号", justify="center", style="green")
+            table.add_column("电影标题", justify="left", no_wrap=True)
+            # table.add_column(
+            #     footer="共计: " + str(len(return_data["results"])), style="grey53"
+            # )
+            for i, r in enumerate(api_task.response.data["results"]):
+                table.add_row(r["release_date"], str(r["id"]), str(i), r["title"])
+            console.print(table)
+
+        # 请求失败则输出失败信息
+        else:
+            Message.error(f"Keyword: {api_task.args.get('keyword')}")

@@ -1,13 +1,12 @@
 import os
 from unittest import mock
 
-from AlistMediaRename import Amr, Config, logger
+from AlistMediaRename import Amr, Config
 from test.utils import TestUtils
 
 
 @mock.patch("builtins.input")
-def test_tv_rename_id(mocked_input): 
-
+def test_tv_rename_id(mocked_input):
     # 模拟用户输入
     mocked_input.side_effect = ["1", "y"]
     # 初始化
@@ -24,8 +23,8 @@ def test_tv_rename_id(mocked_input):
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".mp4")
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".ass")
     amr.tv_rename_id(tv_id, "/files/test_amr/episode")
-    for result in logger.log:
-        assert result.success
+    for task in amr._taskManager.tasks_done:
+        assert task.response.success
     TestUtils.delete_folder(folderpath)
 
 
@@ -48,8 +47,8 @@ def test_tv_rename_keyword(mocked_input):
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".mp4")
     TestUtils.generate_random_files(folderpath, 15, 1, "episode", ".ass")
     result = amr.tv_rename_keyword(keyword, "files/test_amr/episode")
-    for result in logger.log:
-        assert result.success
+    for task in amr._taskManager.tasks_done:
+        assert task.response.success
 
     TestUtils.delete_folder(folderpath)
 
@@ -73,8 +72,8 @@ def test_movie_rename_id(mocked_input):
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".mp4")
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".ass")
     result = amr.movie_rename_id(movie_id, "files/test_amr/movie")
-    for result in logger.log:
-        assert result.success
+    for task in amr._taskManager.tasks_done:
+        assert task.response.success
 
     TestUtils.delete_folder(folderpath)
 
@@ -98,7 +97,7 @@ def test_movie_rename_keyword(mocked_input):
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".mp4")
     TestUtils.generate_random_files(folderpath, 2, 1, "movie", ".ass")
     result = amr.movie_rename_keyword(keyword, "files/test_amr/movie")
-    for result in logger.log:
-        assert result.success
+    for task in amr._taskManager.tasks_done:
+        assert task.response.success
 
     TestUtils.delete_folder(folderpath)

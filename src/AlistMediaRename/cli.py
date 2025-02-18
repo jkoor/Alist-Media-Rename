@@ -1,7 +1,7 @@
 from typing import Union
 from importlib.metadata import version
 
-from AlistMediaRename import Amr, logger
+from AlistMediaRename import Amr
 import click
 from rich.traceback import install
 
@@ -67,12 +67,8 @@ def start(
     :param password: 文件访问密码
     """
 
-    # 设置日志级别
-    if verbose:
-        logger.verbose_mode = True
-
     # 初始化
-    amr = Amr(config)
+    amr = Amr(config, verbose=verbose)
     if folder is not None:
         amr.config.settings.amr.media_folder_rename = folder
 

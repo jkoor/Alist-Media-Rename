@@ -1,7 +1,7 @@
 import importlib.resources
 from ruamel.yaml import YAML
 from .models import Settings
-from .output import Message, console
+from .output import Message
 
 
 class Config:
@@ -15,8 +15,7 @@ class Config:
 
         if self.filepath:
             try:
-                with console.status("加载配置文件..."):
-                    self.load(self.filepath)
+                self.load(self.filepath)
 
             except Exception as e:
                 Message.error(f"加载配置文件失败: {e}")
@@ -85,9 +84,11 @@ class Config:
             data = file.read()
         config_data = self._yaml.load(data)
         # 验证配置文件
-        self.settings = Settings.model_validate(config_data)
-        if self.settings.version != config_data.get("version", 0):
+        version: int = self.settings.version
+        self.settings: Settings = Settings.model_validate(config_data)
+        if version != config_data.get("version", 0):
             Message.warning("配置文件版本不匹配，已更新配置文件")
+            self.settings.version = version
             self.save(filepath, output=False)
 
         if output:

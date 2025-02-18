@@ -2,7 +2,7 @@
 alist:
   # description: Alist 主页地址
   # type: string
-  # example: https://127.0.0.1:5244
+  # example: http://127.0.0.1:5244
   url: ""
 
   # description: 使用访客身份权限，不需要登陆，请确保 Alist 服务端开启了访客身份权限
