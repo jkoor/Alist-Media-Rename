@@ -5,7 +5,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
 from .models import RenameTask
-
+import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -16,6 +16,7 @@ console = Console()
 
 class UserExit(Exception):
     pass
+    # sys.exit(0)
 
 
 class Message:
@@ -86,7 +87,8 @@ class Message:
 
     @staticmethod
     def exit():
-        raise UserExit("用户主动退出")
+        # raise UserExit("用户主动退出")
+        sys.exit(1)
 
     @staticmethod
     def question(message: str, printf: bool = True):
