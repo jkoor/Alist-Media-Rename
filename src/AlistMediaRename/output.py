@@ -406,13 +406,14 @@ class OutputParser:
             Message.success(f"关键词: {api_task.args.get('keyword')}")
             table = Table(box=box.SIMPLE)
             table.add_column("开播时间", justify="center", style="cyan")
+            table.add_column("TMDB ID", justify="center", style="magenta")
             table.add_column("序号", justify="center", style="green")
             table.add_column("剧名", justify="left", no_wrap=True)
             # table.add_column(
             #     footer="共计: " + str(len(return_data["results"])), style="grey53"
             # )
             for i, r in enumerate(api_task.response.data["results"]):
-                table.add_row(r["first_air_date"], str(i), r["name"])
+                table.add_row(r["first_air_date"], str(r["id"]), str(i), r["name"])
             console.print(table)
         else:
             Message.error(f"关键词: {api_task.args.get('keyword')}")
@@ -453,14 +454,15 @@ class OutputParser:
             Message.success(f"关键词: {api_task.args.get('keyword')}")
 
             table = Table(box=box.SIMPLE)
-            table.add_column("首播时间", justify="center", style="cyan")
+            table.add_column("首映时间", justify="center", style="cyan")
+            table.add_column("TMDB ID", justify="center", style="magenta")
             table.add_column("序号", justify="center", style="green")
             table.add_column("电影标题", justify="left", no_wrap=True)
             # table.add_column(
             #     footer="共计: " + str(len(return_data["results"])), style="grey53"
             # )
             for i, r in enumerate(api_task.response.data["results"]):
-                table.add_row(r["release_date"], str(i), r["title"])
+                table.add_row(r["release_date"], str(r["id"]), str(i), r["title"])
             console.print(table)
 
         # 请求失败则输出失败信息

@@ -1,11 +1,12 @@
 import asyncio
 from functools import wraps
 import inspect
+import sys
 from typing import Any, Callable, Coroutine
 
 import httpx
 
-from .models import ApiResponse, ApiResponseError
+from .models import ApiResponse
 from .output import OutputParser, console
 
 
@@ -86,7 +87,7 @@ class ApiTask:
 
     @property
     def model_dump(self) -> dict:
-        """返回模型信息"""
+        """返回任务模型信息"""
         return {
             "func": self.func,
             "args": self.args,
@@ -106,7 +107,8 @@ class ApiTask:
 
         self.output_parser(self)
         if not self.response.success and self.raise_error:
-            raise ApiResponseError(self.response.error)
+            # raise ApiResponseError(self.response.error)
+            sys.exit(1)
 
         return self.response
 
@@ -122,7 +124,8 @@ class ApiTask:
             )
         self.output_parser(self)
         if not self.response.success and self.raise_error:
-            raise ApiResponseError()
+            # raise ApiResponseError()
+            sys.exit(1)
         return self.response
 
     @classmethod
@@ -233,6 +236,7 @@ class TaskManager:
         self.tasks_recently: list[ApiTask] = []
 
         self.verbose = verbose
+        self.raise_error = False
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
