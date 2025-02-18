@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.1.6] - 2025-02-18
+### Added
+- 显示剧集查找结果时加入 TMDB ID 字段
+### Changed
+- 重构任务管理器，更好地处理api请求
+
 ## [3.1.5] - 2024-12-26
 ### Added
 - 增加二进制文件，便于无Python环境用户使用，支持 Windows Linux 平台
