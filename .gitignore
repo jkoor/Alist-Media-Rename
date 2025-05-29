@@ -6,3 +6,4 @@ venv
 uv.lock
 .env
 /tmp
+log_file_*.log

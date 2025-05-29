@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 
 from AlistMediaRename.task import TaskManager
@@ -9,6 +10,9 @@ from .models import RenameTask, Folder
 from .output import Message, console
 from .task import taskManager, ApiTask
 from .utils import Helper
+
+
+logger = logging.getLogger("Amr")
 
 
 class Amr:
@@ -27,12 +31,18 @@ class Amr:
         :param config: 配置参数
         """
 
+        logger.debug("Amr 初始化开始，配置文件路径")
         with console.status("加载配置文件..."):
-            self.config = config if type(config) is Config else Config(config)
+            # 如果传入的是 Config 对象，直接使用；否则从路径加载
+            if isinstance(config, Config):
+                self.config = config
+            else:
+                self.config = Config(config)
 
         self._taskManager: TaskManager = taskManager
         self._taskManager.verbose = verbose
 
+        logger.debug("登录Alist...")
         with console.status("登录Alist..."):
             # 初始化 AlistApi 和 TMDBApi
             self.alist = AlistApi(
@@ -64,7 +74,16 @@ class Amr:
         :return: 重命名请求结果
         """
 
+        logger.info(
+            f"---Amr tv_rename_id---\n"
+            f"tv_id: {tv_id}\n"
+            f"folder_path: {folder_path}\n"
+            f"folder_password: {'******' if folder_password else 'None'}\n"
+            f"first_number: {first_number}"
+        )
+
         ### ------------------------ 获取文件列表 ------------------------ ####
+        logger.debug("获取文件列表...")
         with console.status("获取文件列表..."):
             # Step 1: 刷新文件夹所在父文件夹，防止Alist未及时刷新，导致无法获取文件列表
             task_0_file_list: ApiTask = self.alist.file_list(
@@ -77,6 +96,7 @@ class Amr:
 
         ### ------------------------ 获取 TMDB 剧集/季度信息 ------------------------ ####
         # Step 3: 根据剧集 id 查找 TMDB 剧集信息
+        logger.debug("查找指定剧集...")
         with console.status("查找指定剧集..."):
             task_2_tv_info: ApiTask = self.tmdb.tv_info(
                 tv_id, self.config.tmdb.language
@@ -88,8 +108,10 @@ class Amr:
         # Step 4: 根据查找信息选择季度
         index = Message.select_number(len(task_2_tv_info.response.data["seasons"]))
         season_number = task_2_tv_info.response.data["seasons"][index]["season_number"]
+        logger.debug(f"选择季度: {season_number}")
 
         # Step 5: 获取剧集对应季每集信息
+        logger.debug("获取季度信息...")
         with console.status("获取季度信息..."):
             task_3_tv_season_info: ApiTask = self.tmdb.tv_season_info(
                 tv_id, season_number, self.config.tmdb.language
@@ -140,6 +162,7 @@ class Amr:
         Message.require_confirmation()
 
         # Step 8: 进行文件重命名操作
+        logger.debug("正在重命名文件...")
         with console.status("正在重命名文件..."):
             # 生成重命名任务列表
             tasks_4_video_rename_list: list[ApiTask] = [
@@ -189,8 +212,17 @@ class Amr:
         :return: 重命名请求结果
         """
 
+        logger.info(
+            f"---Amr tv_rename_keyword---\n"
+            f"keyword: {keyword}\n"
+            f"folder_path: {folder_path}\n"
+            f"folder_password: {'******' if folder_password else 'None'}\n"
+            f"first_number: {first_number}"
+        )
+
         ### ------------------------ 1. 查找 TMDB 剧集信息 ------------------------ ####
         # Step 1: 使用关键词查找剧集
+        logger.debug("查找指定剧集...")
         with console.status("查找指定剧集..."):
             task_0_search_tv: ApiTask = self.tmdb.search_tv(
                 keyword, self.config.tmdb.language
@@ -203,6 +235,7 @@ class Amr:
         selected_number = Message.select_number(
             len(task_0_search_tv.response.data["results"])
         )
+        logger.debug(f"选择剧集: {selected_number}")
         tv_id = task_0_search_tv.response.data["results"][selected_number]["id"]
         tv_id: str = str(tv_id)
 

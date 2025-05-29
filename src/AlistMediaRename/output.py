@@ -1,3 +1,4 @@
+import logging
 from typing import Callable
 from rich import box
 from rich.console import Console
@@ -11,7 +12,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .api import ApiTask
 
+
 console = Console()
+logger = logging.getLogger("Amr.Output")
 
 
 class UserExit(Exception):
@@ -51,50 +54,73 @@ class Message:
 
     @staticmethod
     def success(message: str, printf: bool = True):
+        log_message = f":white_check_mark: {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f":white_check_mark: {message}")
-        return f":white_check_mark: {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def error(message: str, printf: bool = True):
+        log_message = f":x: {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f":x: {message}")
-        return f":x: {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def warning(message: str, printf: bool = True):
+        log_message = f":warning:  {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f":warning:  {message}")
-        return f":warning:  {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def ask(message: str, printf: bool = True):
+        log_message = f":bell: {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f":bell: {message}")
-        return f":bell: {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def info(message: str, printf: bool = True):
+        log_message = f":information:  {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f":information:  {message}")
-        return f":information:  {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def congratulation(message: str, printf: bool = True):
+        log_message = f"\n:party_popper: {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f"\n:party_popper: {message}")
-        return f":party_popper: {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def exit():
         # raise UserExit("用户主动退出")
+        log_message = "用户主动退出"
+        logger.debug(log_message)
         sys.exit(1)
 
     @staticmethod
     def question(message: str, printf: bool = True):
+        log_message = f":abc: {message}"
+        logger.debug(log_message)
+        # 如果printf为True，则打印到控制台
         if printf:
-            console.print(f":abc: {message}")
-        return f":abc: {message}"
+            console.print(log_message)
+        return log_message
 
     @staticmethod
     def text_regex(text: str):
@@ -124,6 +150,7 @@ class Message:
                     Message.text_regex(video.original_name),
                     "->",
                     Message.text_regex(video.target_name),
+                    logger.debug(f"{video.original_name} -> {video.target_name}"),
                 )
             console.print(table)
         if len(subtitle_rename_list) > 0:
@@ -138,6 +165,7 @@ class Message:
                     "->",
                     Message.text_regex(subtitle.target_name),
                 )
+                logger.debug(f"{subtitle.original_name} -> {subtitle.target_name}")
             console.print(table)
         if folder_rename:
             Message.info(
@@ -228,6 +256,9 @@ class Message:
                     "->",
                     Message.text_regex(task.args["name"]),
                     task.response.error,
+                )
+                logger.debug(
+                    f"重命名失败: {task.args['path'].split('/')[-1]} -> {task.args['name']}, 错误信息: {task.response.error}"
                 )
             console.print(table)
 
@@ -395,6 +426,9 @@ class OutputParser:
                     str(i),
                     season["name"],
                 )
+                logger.debug(
+                    f"剧集信息: {season['name']} ({season['air_date']}) 集数: {season['episode_count']}"
+                )
             console.print(table)
         else:
             Message.error(f"tv_id: {api_task.args.get('tv_id')}")
@@ -416,6 +450,9 @@ class OutputParser:
             # )
             for i, r in enumerate(api_task.response.data["results"]):
                 table.add_row(r["first_air_date"], str(r["id"]), str(i), r["name"])
+                logger.debug(
+                    f"剧集信息: {r['name']} ({r['first_air_date']}) TMDB ID: {r['id']}"
+                )
             console.print(table)
         else:
             Message.error(f"关键词: {api_task.args.get('keyword')}")
