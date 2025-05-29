@@ -257,7 +257,16 @@ class Amr:
         :return: 重命名请求结果
         """
 
+        logger.info(
+            f"---Amr movie_rename_id---\n"
+            f"movie_id: {movie_id}\n"
+            f"folder_path: {folder_path}\n"
+            f"folder_password: {'******' if folder_password else 'None'}"
+        )
+
         ### ------------------------ 1. 获取文件列表 -------------------- ###
+        # Step 1: 获取文件列表
+        logger.debug("获取文件列表...")
         with console.status("获取文件列表..."):
             # Step 1: 刷新文件夹所在父文件夹，防止Alist为及时刷新，导致无法获取文件列表
             task_0_file_list: ApiTask = self.alist.file_list(
@@ -271,6 +280,7 @@ class Amr:
 
         ### ------------------------ 2. 查找 TMDB 电影信息 ------------------------ ####
         # Step 1: 根据电影 id 查找 TMDB 电影信息
+        logger.debug("查找指定电影...")
         with console.status("查找指定电影..."):
             task_2_movie_info: ApiTask = self.tmdb.movie_info(
                 movie_id, self.config.tmdb.language
@@ -380,6 +390,7 @@ class Amr:
         selected_number = Message.select_number(
             len(task_0_search_movie.response.data["results"])
         )
+        logger.debug(f"选择电影: {selected_number}")
         movie_id = task_0_search_movie.response.data["results"][selected_number]["id"]
         movie_id: str = str(movie_id)
 

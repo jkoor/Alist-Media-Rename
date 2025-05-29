@@ -478,8 +478,7 @@ class OutputParser:
             )
 
             console.print(f"[标语] {api_task.response.data['tagline']}")
-
-            console.print(f"[剧集简介] {api_task.response.data['overview']}")
+            console.print(f"[电影简介] {api_task.response.data['overview']}")
 
         # 请求失败则输出失败信息
         else:
@@ -502,6 +501,9 @@ class OutputParser:
             # )
             for i, r in enumerate(api_task.response.data["results"]):
                 table.add_row(r["release_date"], str(r["id"]), str(i), r["title"])
+                logger.debug(
+                    f"电影信息: {r['title']} ({r['release_date']}) TMDB ID: {r['id']}"
+                )
             console.print(table)
 
         # 请求失败则输出失败信息
