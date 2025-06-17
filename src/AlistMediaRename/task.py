@@ -1,13 +1,17 @@
 import asyncio
 from functools import wraps
 import inspect
+import json
+import logging
 import sys
 from typing import Any, Callable, Coroutine
 
 import httpx
 
 from .models import ApiResponse
-from .output import OutputParser, console
+from .output import OutputParser
+
+logger = logging.getLogger("Amr.Task")  # 获取子 logger
 
 
 class CatchException:
@@ -258,9 +262,16 @@ class TaskManager:
             result = self.run_async()
         else:
             result = self.run_sync()
-        if self.verbose:
-            for task in self.tasks_recently:
-                console.print(task.model_dump)
+        # if self.verbose:
+        #     for task in self.tasks_recently:
+        #         console.print(task.model_dump)
+        for task in self.tasks_recently:
+            logger.info(
+                f"Task: {task.func.__name__}, Args: {task.args}, Success: {task.response.success}, Error: {task.response.error}"
+            )
+            logger.debug(
+                f"任务 '{task.func.__name__}' 的原始数据: \n{json.dumps(task.response.data, indent=2, ensure_ascii=False)}"
+            )
         return result
 
     def run_sync(self) -> list[ApiResponse]:

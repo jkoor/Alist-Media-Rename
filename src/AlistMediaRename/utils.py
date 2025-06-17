@@ -86,13 +86,18 @@ class Helper:
             if ep["episode_number"] not in indexs:
                 continue
 
+            # FIXME: 处理没有日期的空剧集
             # 创建格式化变量
-            fv_episode = Formated_Variables.episode(
-                episode=ep["episode_number"],
-                air_date=ep["air_date"],
-                episode_rating=ep["vote_average"],
-                title=ep["name"],
-            )
+            try:
+                fv_episode = Formated_Variables.episode(
+                    episode=ep["episode_number"],
+                    air_date=ep["air_date"],
+                    episode_rating=ep["vote_average"],
+                    title=ep["name"],
+                )
+            except Exception:
+                continue
+
             media_list.append(
                 MediaMeta(
                     media_type="tv",
