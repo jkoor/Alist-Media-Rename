@@ -64,6 +64,7 @@ amr:
   # example: "{name}-{year}" 复仇者联盟-2012.mp4
   # params: {name} - 电影名称
   # params: {original_name} - 电影原始名称（未翻译名称）
+  # params: {collection_name} - 电影系列名称
   # params: {year} - 上映年份
   # params: {release_date} - 上映日期
   # params: {language} - 语言

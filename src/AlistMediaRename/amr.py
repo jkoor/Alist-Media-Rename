@@ -29,12 +29,11 @@ class Amr:
         """
 
         logger.debug("Amr 初始化开始，配置文件路径")
-        with console.status("加载配置文件..."):
-            # 如果传入的是 Config 对象，直接使用；否则从路径加载
-            if isinstance(config, Config):
-                self.config = config
-            else:
-                self.config = Config(config)
+        # 如果传入的是 Config 对象，直接使用；否则从路径加载
+        if isinstance(config, Config):
+            self.config = config
+        else:
+            self.config = Config(config)
 
         self._taskManager: TaskManager = taskManager
         self._taskManager.verbose = verbose
@@ -78,6 +77,10 @@ class Amr:
             f"folder_password: {'******' if folder_password else 'None'}\n"
             f"first_number: {first_number}"
         )
+
+        if folder_path == "":
+            self.tv_info_id(tv_id, first_number)
+            return True
 
         ### ------------------------ 获取文件列表 ------------------------ ####
         logger.debug("获取文件列表...")
@@ -241,6 +244,68 @@ class Amr:
 
         return True
 
+    # TAG: tv_info_id
+    def tv_info_id(
+        self,
+        tv_id: str,
+        first_number: str = "1-",
+    ) -> bool:
+        """
+        根据TMDB剧集id获取剧集标题,并输出查找信息.
+
+        :param tv_id: 剧集id
+        :param first_number: 从集数开始命名, 如first_name=5-, 则从第5集开始按顺序重命名
+        :return: 查找请求结果
+        """
+
+        logger.info(
+            f"---Amr tv_info_id---\ntv_id: {tv_id}\nfirst_number: {first_number}"
+        )
+
+        ### ------------------------ 获取 TMDB 剧集/季度信息 ------------------------ ####
+        # Step 3: 根据剧集 id 查找 TMDB 剧集信息
+        logger.debug("查找指定剧集...")
+        with console.status("查找指定剧集..."):
+            task_2_tv_info: ApiTask = self.tmdb.tv_info(
+                tv_id, self.config.tmdb.language
+            )
+
+            self._taskManager.add_tasks(task_2_tv_info)
+            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+
+        # Step 4: 根据查找信息选择季度
+        index = Message.select_number(len(task_2_tv_info.response.data["seasons"]))
+        season_number = task_2_tv_info.response.data["seasons"][index]["season_number"]
+        logger.debug(f"选择季度: {season_number}")
+
+        # Step 5: 获取剧集对应季每集信息
+        logger.debug("获取季度信息...")
+        with console.status("获取季度信息..."):
+            task_3_tv_season_info: ApiTask = self.tmdb.tv_season_info(
+                tv_id, season_number, self.config.tmdb.language
+            )
+            self._taskManager.add_tasks(task_3_tv_season_info)
+            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+
+        ### ------------------------ 查找剧集信息 -------------------- ###
+        # Step 5:  查找剧集信息
+
+        # 获取剧集信息
+        media_list, folder_media_list = Helper.create_tv_media_list(
+            first_number,
+            task_2_tv_info,
+            task_3_tv_season_info,
+            tv_id,
+            self.config,
+        )
+
+        # 输出剧集信息
+        Message.print_tv_info(
+            media_list,
+        )
+
+        return True
+
     # TAG: movie_rename_id
     def movie_rename_id(
         self, movie_id: str, folder_path: str, folder_password=None
@@ -260,6 +325,10 @@ class Amr:
             f"folder_path: {folder_path}\n"
             f"folder_password: {'******' if folder_password else 'None'}"
         )
+
+        if folder_path == "":
+            self.movie_info_id(movie_id)
+            return True
 
         ### ------------------------ 1. 获取文件列表 -------------------- ###
         # Step 1: 获取文件列表
@@ -393,5 +462,37 @@ class Amr:
 
         # Step 3: 根据获取到的id调用 movie_rename_id 函数进行重命名
         self.movie_rename_id(movie_id, folder_path, folder_password)
+
+        return True
+
+    # TAG: movie_info_id
+    def movie_info_id(self, movie_id: str) -> bool:
+        """
+        根据TMDB电影id获取电影标题,并输出查找信息.
+
+        :param movie_id: 电影id
+        :return: 重命名请求结果
+        """
+
+        logger.info(f"---Amr movie_info_id---\nmovie_id: {movie_id}\n")
+
+        ### ------------------------ 1. 查找 TMDB 电影信息 ------------------------ ####
+        # Step 1: 根据电影 id 查找 TMDB 电影信息
+        logger.debug("查找指定电影...")
+        with console.status("查找指定电影..."):
+            task_2_movie_info: ApiTask = self.tmdb.movie_info(
+                movie_id, self.config.tmdb.language
+            )
+
+            self._taskManager.add_tasks(task_2_movie_info)
+            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+
+        ### ------------------------ 3. 匹配电影信息/文件列表 -------------------- ###
+        # Step 3: 匹配电影信息/文件列表
+
+        # 获取电影信息
+        media_list, folder_media_list = Helper.create_movie_media_list(
+            task_2_movie_info, movie_id, self.config
+        )
 
         return True

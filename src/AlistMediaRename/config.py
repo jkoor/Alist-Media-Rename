@@ -7,13 +7,13 @@ from .output import Message
 class Config:
     """配置参数"""
 
-    def __init__(self, filepath=None):
+    def __init__(self, filepath: str = ""):
         """初始化参数"""
         self.filepath = filepath
         self.settings = Settings()
         self._yaml = YAML()
 
-        if self.filepath:
+        if self.filepath != "":
             try:
                 self.load(self.filepath)
 

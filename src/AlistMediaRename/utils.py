@@ -73,7 +73,7 @@ class Helper:
             region=task_2_tv_info.response.data["origin_country"][0],
             rating=task_2_tv_info.response.data["vote_average"],
             season=task_3_tv_season_info.response.data["season_number"],
-            season_year=task_3_tv_season_info.response.data["air_date"][:4],
+            season_year=task_3_tv_season_info.response.data["air_date"][:4] if task_3_tv_season_info.response.data["air_date"] else "0000",
             tmdb_id=tmdb_id,
         )
         # 创建媒体元数据列表
@@ -133,6 +133,11 @@ class Helper:
         fv_movie = Formated_Variables.movie(
             name=task_2_movie_info.response.data["title"],
             original_name=task_2_movie_info.response.data["original_title"],
+            collection_name=task_2_movie_info.response.data["belongs_to_collection"][
+                "name"
+            ]
+            if task_2_movie_info.response.data["belongs_to_collection"]
+            else "",
             year=task_2_movie_info.response.data["release_date"][:4],
             release_date=task_2_movie_info.response.data["release_date"],
             language=task_2_movie_info.response.data["original_language"],

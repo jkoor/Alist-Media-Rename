@@ -69,6 +69,7 @@ class Formated_Variables:
 
         name: str  # 电影名称
         original_name: str  # 原始电影名称
+        collection_name: str
         year: str  # 电影年份
         release_date: str  # 电影上映日期
         language: str  # 语言

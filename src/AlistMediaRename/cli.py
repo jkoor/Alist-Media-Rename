@@ -24,7 +24,7 @@ install(show_locals=False, suppress=[click])
     show_default=True,
     help="指定配置文件路径, 默认为程序所在路径(可选)",
 )
-@click.option("-d", "--dir", type=str, required=True, help="Alist剧集文件所在文件夹")
+@click.option("-d", "--dir", type=str, default="", help="Alist剧集文件所在文件夹")
 @click.option("-i", "--id", is_flag=True, help="通过id搜索TMDB剧集信息(可选)")
 @click.option("-m", "--movie", is_flag=True, help="搜索电影而不是剧集")
 @click.option(
@@ -39,6 +39,7 @@ install(show_locals=False, suppress=[click])
 @click.option(
     "--folder/--no-folder", default=None, help="是否对父文件夹进行重命名(可选)"
 )
+@click.option("--suffix", type=str, help="在文件名后添加自定义后缀(可选)")
 @click.option("--verbose", is_flag=True, help="显示详细信息(可选)")
 @click.option("--log-file", type=str, help="输出日志文件路径(可选)", default=None)
 @click.version_option(
@@ -53,6 +54,7 @@ def start(
     movie: bool,
     number: str,
     password: str,
+    suffix: str,
     verbose: bool,
     log_file: Union[str, None] = None,
 ):
@@ -69,6 +71,7 @@ def start(
     :param movie: 搜索电影而不是剧集
     :param number: 指定从第几集开始重命名
     :param password: 文件访问密码
+    :param suffix: 在文件名后添加自定义后缀
     :param verbose: 显示详细信息
     """
 
@@ -83,9 +86,17 @@ def start(
 
     try:
         logger.debug("开始初始化 Amr 实例")
-        # Amr 初始化时 verbose 参数可能不再需要，或根据其内部是否仍需此标志决定
+
         amr = Amr(config=config, verbose=verbose)
 
+        # 设置文件名后缀选项
+        if suffix:
+            amr.config.settings.amr.movie_name_format += suffix
+            amr.config.settings.amr.movie_folder_name_format += suffix
+            amr.config.settings.amr.tv_name_format += suffix
+            amr.config.settings.amr.tv_folder_name_format += suffix
+
+        # 设置文件夹重命名选项
         if folder is not None:
             amr.config.settings.amr.media_folder_rename = folder
 

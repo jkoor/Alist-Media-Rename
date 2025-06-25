@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.text import Text
-from .models import RenameTask
+from .models import RenameTask, MediaMeta
 import sys
 from typing import TYPE_CHECKING
 
@@ -284,6 +284,34 @@ class Message:
 
         # 程序运行结束
         Message.congratulation("重命名完成")
+
+    @staticmethod
+    def print_tv_info(media_list: list["MediaMeta"]) -> None:
+        """打印剧集信息"""
+
+        if len(media_list) == 0:
+            Message.error("未找到剧集信息")
+            return
+
+        table = Table(box=box.SIMPLE)
+        table.add_column("播放日期", justify="left", style="cyan")
+        table.add_column("序号", justify="center", style="magenta")
+        # table.add_column("评分", justify="center", style="green")
+        table.add_column("剧集名称", justify="left", style="green")
+        table.add_column("重命名标题", justify="left")
+
+        for media in media_list:
+            if media.media_type == "tv" and media.episode_format_variables:
+                table.add_row(
+                    media.episode_format_variables.air_date,
+                    str(round(media.episode_format_variables.episode, 2)),
+                    media.episode_format_variables.title,
+                    media.fullname,
+                )
+            else:
+                logger.warning(f"MediaMeta类型错误: {media.media_type}")
+
+        console.print(table)
 
 
 class OutputParser:
