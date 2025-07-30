@@ -73,14 +73,27 @@ class Helper:
             region=task_2_tv_info.response.data["origin_country"][0],
             rating=task_2_tv_info.response.data["vote_average"],
             season=task_3_tv_season_info.response.data["season_number"],
-            season_year=task_3_tv_season_info.response.data["air_date"][:4] if task_3_tv_season_info.response.data["air_date"] else "0000",
+            season_year=task_3_tv_season_info.response.data["air_date"][:4]
+            if task_3_tv_season_info.response.data["air_date"]
+            else "0000",
             tmdb_id=tmdb_id,
         )
+
+        # 提取 episode_number 列表
+        episode_numbers = [
+            ep["episode_number"]
+            for ep in task_3_tv_season_info.response.data["episodes"]
+        ]
+
         # 创建媒体元数据列表
         indexs: list[int] = Utils.parse_page_ranges(
             first_number,
-            len(task_3_tv_season_info.response.data["episodes"]),
+            max(episode_numbers) if episode_numbers else 1,
         )
+
+        # 取交集
+        indexs = list(set(indexs) & set(episode_numbers))
+
         media_list: list[MediaMeta] = []
         for ep in task_3_tv_season_info.response.data["episodes"]:
             if ep["episode_number"] not in indexs:
