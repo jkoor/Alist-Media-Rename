@@ -20,20 +20,7 @@ class CatchException:
     """
 
     @staticmethod
-    def catch_api_exceptions(func) -> Callable[..., ApiResponse]:
-        """捕获任务异常"""
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> ApiResponse:
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                return ApiResponse(success=False, status_code=-1, error=str(e), data={})
-
-        return wrapper
-
-    @staticmethod
-    def catch_api_exceptions_async(
+    def catch_api_exceptions(
         func,
     ) -> Callable[..., Coroutine[Any, Any, ApiResponse]]:
         """捕获任务异常"""
@@ -98,26 +85,8 @@ class ApiTask:
             "response": self.response,
         }
 
-    def send_request_sync(self, client=httpx.Client()) -> ApiResponse:
-        """同步发送网络请求"""
-        self.request = self.func(*self._args, **self._kwargs)
-        try:
-            response: httpx.Response = client.send(self.request)
-            self.response = self.response_parser(response)
-        except Exception as e:
-            self.response = ApiResponse(
-                success=False, status_code=-1, error=str(e), data={}
-            )
-
-        self.output_parser(self)
-        if not self.response.success and self.raise_error:
-            # raise ApiResponseError(self.response.error)
-            sys.exit(1)
-
-        return self.response
-
-    async def send_request_async(self, client=httpx.AsyncClient()) -> ApiResponse:
-        """异步发送网络请求"""
+    async def send(self, client=httpx.AsyncClient()) -> ApiResponse:
+        """发送网络请求"""
         self.request = self.func(*self._args, **self._kwargs)
         try:
             response: httpx.Response = await client.send(self.request)
@@ -232,15 +201,15 @@ class TaskManager:
 
     _instance = None  # 用于存储唯一的实例
 
-    def __init__(self, verbose: bool = False) -> None:
-        self._sync_client = httpx.Client()
+    def __init__(self, verbose: bool = False, limit_rate: int = 5) -> None:
         self._async_client = httpx.AsyncClient()
         self.tasks_pending: list[ApiTask] = []
         self.tasks_done: list[ApiTask] = []
         self.tasks_recently: list[ApiTask] = []
 
         self.verbose = verbose
-        self.raise_error = False
+        self.raise_error = True
+        self.limit_rate = limit_rate
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -255,16 +224,17 @@ class TaskManager:
             else:
                 raise TypeError("Only ApiTask instances can be added.")
 
-    def run_tasks(self, async_: bool = False) -> list[ApiResponse]:
-        """运行任务"""
+    def run_tasks(self) -> list[ApiResponse]:
+        """
+        运行所有待处理的任务
+        """
         self.tasks_recently = self.tasks_pending.copy()
-        if async_:
-            result = self.run_async()
-        else:
-            result = self.run_sync()
-        # if self.verbose:
-        #     for task in self.tasks_recently:
-        #         console.print(task.model_dump)
+
+        # 运行异步任务
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(self._execute())
+
+        # 记录日志
         for task in self.tasks_recently:
             logger.info(
                 f"Task: {task.func.__name__}, Args: {task.args}, Success: {task.response.success}, Error: {task.response.error}"
@@ -274,34 +244,22 @@ class TaskManager:
             )
         return result
 
-    def run_sync(self) -> list[ApiResponse]:
-        """同步运行所有任务"""
+    async def _execute(self) -> list[ApiResponse]:
+        """执行所有任务"""
+        if self.limit_rate and self.limit_rate > 0:
+            semaphore = asyncio.Semaphore(self.limit_rate)
 
-        results: list[ApiResponse] = []
+            async def send_with_semaphore(task: ApiTask) -> ApiResponse:
+                async with semaphore:
+                    return await task.send(self._async_client)
 
-        for task in self.tasks_pending:
-            result: ApiResponse = task.send_request_sync(self._sync_client)
-            results.append(result)
-            self.tasks_done.append(task)  # 保存结果
+            tasks = [send_with_semaphore(task) for task in self.tasks_pending]
+        else:
+            tasks = [task.send(self._async_client) for task in self.tasks_pending]
+
+        results: list[ApiResponse] = await asyncio.gather(*tasks)
+        self.tasks_done.extend(self.tasks_pending)  # 保存结果
         self.tasks_pending.clear()  # 清空任务列表
-        return results
-
-    def run_async(self) -> list[ApiResponse]:
-        """异步运行所有任务"""
-
-        async def async_run() -> list[ApiResponse]:
-            tasks = [
-                task.send_request_async(self._async_client)
-                for task in self.tasks_pending
-            ]
-            results: list[ApiResponse] = await asyncio.gather(*tasks)
-            self.tasks_done.extend(self.tasks_pending)  # 保存结果
-            self.tasks_pending.clear()  # 清空任务列表
-            return results
-
-        # return asyncio.run(async_run())
-        loop = asyncio.get_event_loop()  # 获取当前事件循环
-        results = loop.run_until_complete(async_run())  # 在当前事件循环中运行异步任务
         return results
 
 

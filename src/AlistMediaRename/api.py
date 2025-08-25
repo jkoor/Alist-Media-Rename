@@ -32,20 +32,7 @@ class AlistApi:
         self.user = user
         self.password = password
         self.totp_code = totp_code
-        self._token = self.get_token(token)
-
-    def get_token(self, token) -> str:
-        """
-        获取Token
-
-        :return: Token
-        """
-        if token != "":
-            return token
-        else:
-            taskManager.add_tasks(self.login())
-            (result,) = taskManager.run_sync()
-            return result.data["token"]
+        self._token = ""
 
     @ApiTask.create("alist", "login", raise_error=True)
     def login(self) -> httpx.Request:
