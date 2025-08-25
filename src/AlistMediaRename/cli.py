@@ -87,7 +87,9 @@ def start(
     try:
         logger.debug("开始初始化 Amr 实例")
 
-        amr = Amr(config=config, verbose=verbose)
+        need_login = False if dir == "" else True
+
+        amr = Amr(config=config, need_login=need_login, verbose=verbose)
 
         # 设置文件名后缀选项
         if suffix:

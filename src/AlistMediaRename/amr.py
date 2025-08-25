@@ -22,10 +22,14 @@ class Amr:
 
     """
 
-    def __init__(self, config: Union[Config, str], verbose: bool = False):
+    def __init__(
+        self, config: Union[Config, str], need_login: bool = True, verbose: bool = False
+    ):
         """
         初始化参数
         :param config: 配置参数
+        :param need_login: 是否需要登录 Alist
+        :param verbose: 是否启用详细日志
         """
 
         logger.debug("Amr 初始化开始，配置文件路径")
@@ -40,18 +44,25 @@ class Amr:
         self._taskManager.limit_rate = self.config.amr.limit_rate
 
         logger.debug("登录Alist...")
-        with console.status("登录Alist..."):
-            # 初始化 AlistApi 和 TMDBApi
-            self.alist = AlistApi(
-                self.config.alist.url,
-                self.config.alist.user,
-                self.config.alist.password,
-                self.config.alist.totp,
-            )
-            self.tmdb = TMDBApi(
-                self.config.tmdb.api_key,
-                self.config.tmdb.api_url,
-            )
+
+        # 初始化 AlistApi 和 TMDBApi
+        self.alist = AlistApi(
+            self.config.alist.url,
+            self.config.alist.user,
+            self.config.alist.password,
+            self.config.alist.totp,
+        )
+        self.tmdb = TMDBApi(
+            self.config.tmdb.api_key,
+            self.config.tmdb.api_url,
+        )
+
+        # 登录
+        if (not self.config.alist.guest_mode) and need_login:
+            with console.status("登录Alist..."):
+                taskManager.add_tasks(self.alist.login())
+                (result,) = taskManager.run_tasks()
+                self.alist._token = result.data["token"]
 
     # TAG: tv_rename_id
     def tv_rename_id(
