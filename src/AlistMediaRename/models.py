@@ -34,8 +34,8 @@ class AmrConfig(BaseModel):
 
     # 是否排除已重命名文件
     exclude_renamed: bool = True
-    # 使用异步方式加快重命名操作
-    rename_by_async: bool = True
+    # 限制任务并发数
+    limit_rate: int = 10
     # 是否重命名父文件夹
     media_folder_rename: bool = True
     # 电影文件命名格式
@@ -58,7 +58,12 @@ class Settings(BaseModel):
     alist: AlistConfig = AlistConfig()
     tmdb: TmdbConfig = TmdbConfig()
     amr: AmrConfig = AmrConfig()
-    version: int = 1
+    version: str = "3.3.0"
+
+    # 将version转换为string
+    @field_validator("version", mode="before")
+    def validate_version(cls, value: int) -> str:
+        return str(value)
 
 
 class Formated_Variables:

@@ -37,6 +37,9 @@ install(show_locals=False, suppress=[click])
 )
 @click.option("-p", "--password", type=str, help="文件访问密码(可选)")
 @click.option(
+    "-r", "--limit-rate", type=int, default=None, help="限制api请求速率(可选)"
+)
+@click.option(
     "--folder/--no-folder", default=None, help="是否对父文件夹进行重命名(可选)"
 )
 @click.option("--suffix", type=str, help="在文件名后添加自定义后缀(可选)")
@@ -54,6 +57,7 @@ def start(
     movie: bool,
     number: str,
     password: str,
+    limit_rate: int,
     suffix: str,
     verbose: bool,
     log_file: Union[str, None] = None,
@@ -71,6 +75,7 @@ def start(
     :param movie: 搜索电影而不是剧集
     :param number: 指定从第几集开始重命名
     :param password: 文件访问密码
+    :param limit_rate: 限制api请求速率
     :param suffix: 在文件名后添加自定义后缀
     :param verbose: 显示详细信息
     """
@@ -87,7 +92,9 @@ def start(
     try:
         logger.debug("开始初始化 Amr 实例")
 
-        amr = Amr(config=config, verbose=verbose)
+        need_login = False if dir == "" else True
+
+        amr = Amr(config=config, need_login=need_login, verbose=verbose)
 
         # 设置文件名后缀选项
         if suffix:
@@ -99,6 +106,10 @@ def start(
         # 设置文件夹重命名选项
         if folder is not None:
             amr.config.settings.amr.media_folder_rename = folder
+
+        # 设置API请求速率限制
+        if limit_rate is not None:
+            amr.config.settings.amr.limit_rate = limit_rate
 
         logger.debug("Amr 实例初始化完成")
 

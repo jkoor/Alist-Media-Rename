@@ -6,6 +6,7 @@
 
 ## ToDo
 
+- [x] 完全兼容 [OpenList](https://github.com/OpenListTeam/OpenList)
 - [x] 重命名异步操作，速度极快
 - [x] 自动通过 Alist 2FA 验证
 - [x] 支持电影/剧集文件重命名
@@ -176,6 +177,7 @@ amr -m -i 413594 -d /阿里云盘/电影/SAO -p 123
 | -m, --movie    |      |                 | 查找电影信息，而不是剧集       |
 | -p, --password |      |     *None*      | Alist 文件夹访问密码           |
 | -n, --number   |      |                 | 指定集号进行重命名           |
+| -r, --limit-rate   |      |                 | 限制请求速率           |
 | -c, --config   |      | ./*config.yaml* | 指定配置文件路径               |
 | --suffix       |      |                 | 为重命名文件添加自定义后缀名          |
 | -h, --help     |      |                 | 显示使用帮助信息               |
