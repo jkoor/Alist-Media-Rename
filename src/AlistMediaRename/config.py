@@ -84,7 +84,7 @@ class Config:
             data = file.read()
         config_data = self._yaml.load(data)
         # 验证配置文件
-        version: int = self.settings.version
+        version: str = self.settings.version
         self.settings: Settings = Settings.model_validate(config_data)
         if version != config_data.get("version", 0):
             Message.warning("配置文件版本不匹配，已更新配置文件")

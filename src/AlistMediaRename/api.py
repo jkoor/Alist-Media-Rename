@@ -44,7 +44,7 @@ class AlistApi:
             return token
         else:
             taskManager.add_tasks(self.login())
-            (result,) = taskManager.run_sync()
+            (result,) = taskManager.run_tasks()
             return result.data["token"]
 
     @ApiTask.create("alist", "login", raise_error=True)

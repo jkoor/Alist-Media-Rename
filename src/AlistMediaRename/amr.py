@@ -37,6 +37,7 @@ class Amr:
 
         self._taskManager: TaskManager = taskManager
         self._taskManager.verbose = verbose
+        self._taskManager.limit_rate = self.config.amr.limit_rate
 
         logger.debug("登录Alist...")
         with console.status("登录Alist..."):
@@ -103,7 +104,7 @@ class Amr:
             )
 
             self._taskManager.add_tasks(task_0_file_list, task_2_tv_info)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         # Step 4: 根据查找信息选择季度
         index = Message.select_number(len(task_2_tv_info.response.data["seasons"]))
@@ -117,7 +118,7 @@ class Amr:
                 tv_id, season_number, self.config.tmdb.language
             )
             self._taskManager.add_tasks(task_3_tv_season_info, task_1_file_list)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         ### ------------------------ 匹配剧集信息-文件列表 -------------------- ###
         # Step 5: 匹配剧集信息-文件列表
@@ -180,10 +181,10 @@ class Amr:
             self._taskManager.add_tasks(
                 *tasks_4_video_rename_list, *tasks_4_subtitle_rename_list
             )
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
             if self.config.amr.media_folder_rename:
                 self._taskManager.add_tasks(*tasks_4_folder_rename_list)
-                self._taskManager.run_tasks(self.config.amr.rename_by_async)
+                self._taskManager.run_tasks()
         # Step 9: 输出重命名结果
         Message.print_rename_result(
             tasks_4_video_rename_list,
@@ -228,7 +229,7 @@ class Amr:
                 keyword, self.config.tmdb.language
             )
             self._taskManager.add_tasks(task_0_search_tv)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         ### ------------------------ 2. 获取剧集 TMDB ID ------------------------------ ###
         # Step 2: 选择剧集
@@ -271,7 +272,7 @@ class Amr:
             )
 
             self._taskManager.add_tasks(task_2_tv_info)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         # Step 4: 根据查找信息选择季度
         index = Message.select_number(len(task_2_tv_info.response.data["seasons"]))
@@ -285,7 +286,7 @@ class Amr:
                 tv_id, season_number, self.config.tmdb.language
             )
             self._taskManager.add_tasks(task_3_tv_season_info)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         ### ------------------------ 查找剧集信息 -------------------- ###
         # Step 5:  查找剧集信息
@@ -353,10 +354,10 @@ class Amr:
             )
 
             self._taskManager.add_tasks(task_0_file_list, task_2_movie_info)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
             self._taskManager.add_tasks(task_1_file_list)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         ### ------------------------ 3. 匹配电影信息/文件列表 -------------------- ###
         # Step 3: 匹配电影信息/文件列表
@@ -414,10 +415,10 @@ class Amr:
             self._taskManager.add_tasks(
                 *tasks_4_video_rename_list, *tasks_4_subtitle_rename_list
             )
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
             if self.config.amr.media_folder_rename:
                 self._taskManager.add_tasks(*tasks_4_folder_rename_list)
-                self._taskManager.run_tasks(self.config.amr.rename_by_async)
+                self._taskManager.run_tasks()
 
         # Step 7: 输出重命名结果
         Message.print_rename_result(
@@ -449,7 +450,7 @@ class Amr:
                 keyword, self.config.tmdb.language
             )
             self._taskManager.add_tasks(task_0_search_movie)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         ### ------------------------ 2. 获取剧集 TMDB ID ------------------------------ ###
         # Step 2: 选择电影
@@ -485,7 +486,7 @@ class Amr:
             )
 
             self._taskManager.add_tasks(task_2_movie_info)
-            self._taskManager.run_tasks(self.config.amr.rename_by_async)
+            self._taskManager.run_tasks()
 
         ### ------------------------ 3. 匹配电影信息/文件列表 -------------------- ###
         # Step 3: 匹配电影信息/文件列表
