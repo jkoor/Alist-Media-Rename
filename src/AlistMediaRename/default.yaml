@@ -89,7 +89,7 @@ amr:
   # params: {region} - 地区
   # params: {rating} - 评分（TMDB）
   # params: {season} - 剧集季度
-  # params: {season} - 剧集季度年份
+  # params: {season_year} - 剧集季度年份
   # params: {tmdb_id} - TMDB ID
   # 单集参数：
   # params: {episode} - 单集序号
@@ -114,4 +114,4 @@ amr:
   subtitle_regex_pattern: (?i).*\.(ass|srt|ssa|sub)$
 
 # 配置文件版本号，用于内部验证，不可修改
-version: 3.3.0
+version: 3.3.1

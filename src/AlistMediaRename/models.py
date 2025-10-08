@@ -58,7 +58,7 @@ class Settings(BaseModel):
     alist: AlistConfig = AlistConfig()
     tmdb: TmdbConfig = TmdbConfig()
     amr: AmrConfig = AmrConfig()
-    version: str = "3.3.0"
+    version: str = "3.3.1"
 
     # 将version转换为string
     @field_validator("version", mode="before")
