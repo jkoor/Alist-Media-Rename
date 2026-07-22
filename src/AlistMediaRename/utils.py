@@ -261,6 +261,7 @@ class Helper:
         file: FileMeta = FileMeta(
             filename=folder_path.current_path(),
             folder_path=Folder(path=folder_path.parent_path()),
+            preserve_extension=False,
         )
         folder_rename_list: list[RenameTask] = [
             RenameTask(media_meta=media, file_meta=file) for media in folder_media_list

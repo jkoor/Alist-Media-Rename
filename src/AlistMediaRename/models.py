@@ -179,6 +179,7 @@ class FileMeta(BaseModel):
     # 输入参数
     filename: str  # 原始完整文件名
     folder_path: Folder  # 文件夹路径
+    preserve_extension: bool = True  # 是否保留原始文件扩展名
 
     # 自动生成参数
     prefix_name: str = ""  # 原始无后缀文件名
@@ -186,10 +187,13 @@ class FileMeta(BaseModel):
 
     @model_validator(mode="after")
     def get_prefix_name_and_extension(self) -> "FileMeta":
-        parts = self.filename.rsplit(".", 1)
-        if len(parts) == 2:
-            prefix, suffix = parts
-            suffix = "." + suffix
+        if self.preserve_extension:
+            parts = self.filename.rsplit(".", 1)
+            if len(parts) == 2:
+                prefix, suffix = parts
+                suffix = "." + suffix
+            else:
+                prefix, suffix = self.filename, ""
         else:
             prefix, suffix = self.filename, ""
         self.prefix_name = prefix
