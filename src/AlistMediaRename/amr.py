@@ -117,31 +117,46 @@ class Amr:
             self._taskManager.add_tasks(task_0_file_list, task_2_tv_info)
             self._taskManager.run_tasks()
 
-        # Step 4: 根据查找信息选择季度
-        index = Message.select_number(len(task_2_tv_info.response.data["seasons"]))
-        season_number = task_2_tv_info.response.data["seasons"][index]["season_number"]
-        logger.debug(f"选择季度: {season_number}")
+        # Step 4: 根据查找信息选择一个或多个季度
+        season_indexes = Message.select_numbers(
+            len(task_2_tv_info.response.data["seasons"])
+        )
+        season_numbers = [
+            task_2_tv_info.response.data["seasons"][index]["season_number"]
+            for index in season_indexes
+        ]
+        logger.debug(f"选择季度: {season_numbers}")
 
-        # Step 5: 获取剧集对应季每集信息
+        # Step 5: 获取所有已选季度的每集信息
         logger.debug("获取季度信息...")
         with console.status("获取季度信息..."):
-            task_3_tv_season_info: ApiTask = self.tmdb.tv_season_info(
-                tv_id, season_number, self.config.tmdb.language
-            )
-            self._taskManager.add_tasks(task_3_tv_season_info, task_1_file_list)
+            tasks_3_tv_season_info: list[ApiTask] = [
+                self.tmdb.tv_season_info(
+                    tv_id, season_number, self.config.tmdb.language
+                )
+                for season_number in season_numbers
+            ]
+            self._taskManager.add_tasks(*tasks_3_tv_season_info, task_1_file_list)
             self._taskManager.run_tasks()
 
         ### ------------------------ 匹配剧集信息-文件列表 -------------------- ###
         # Step 5: 匹配剧集信息-文件列表
 
         # 获取剧集信息
-        media_list, folder_media_list = Helper.create_tv_media_list(
-            first_number,
-            task_2_tv_info,
-            task_3_tv_season_info,
-            tv_id,
-            self.config,
-        )
+        media_list = []
+        folder_media_list = []
+        for task_3_tv_season_info in tasks_3_tv_season_info:
+            season_media_list, season_folder_media_list = Helper.create_tv_media_list(
+                first_number,
+                task_2_tv_info,
+                task_3_tv_season_info,
+                tv_id,
+                self.config,
+            )
+            media_list.extend(season_media_list)
+            # 多季度文件共用同一个父目录，只应生成一次文件夹重命名任务。
+            if not folder_media_list:
+                folder_media_list = season_folder_media_list
         # 筛选视频文件和字幕文件
         video_file_list, subtitle_file_list = Helper.create_file_list(
             task_1_file_list, Folder(path=folder_path), self.config
@@ -285,31 +300,42 @@ class Amr:
             self._taskManager.add_tasks(task_2_tv_info)
             self._taskManager.run_tasks()
 
-        # Step 4: 根据查找信息选择季度
-        index = Message.select_number(len(task_2_tv_info.response.data["seasons"]))
-        season_number = task_2_tv_info.response.data["seasons"][index]["season_number"]
-        logger.debug(f"选择季度: {season_number}")
+        # Step 4: 根据查找信息选择一个或多个季度
+        season_indexes = Message.select_numbers(
+            len(task_2_tv_info.response.data["seasons"])
+        )
+        season_numbers = [
+            task_2_tv_info.response.data["seasons"][index]["season_number"]
+            for index in season_indexes
+        ]
+        logger.debug(f"选择季度: {season_numbers}")
 
-        # Step 5: 获取剧集对应季每集信息
+        # Step 5: 获取所有已选季度的每集信息
         logger.debug("获取季度信息...")
         with console.status("获取季度信息..."):
-            task_3_tv_season_info: ApiTask = self.tmdb.tv_season_info(
-                tv_id, season_number, self.config.tmdb.language
-            )
-            self._taskManager.add_tasks(task_3_tv_season_info)
+            tasks_3_tv_season_info: list[ApiTask] = [
+                self.tmdb.tv_season_info(
+                    tv_id, season_number, self.config.tmdb.language
+                )
+                for season_number in season_numbers
+            ]
+            self._taskManager.add_tasks(*tasks_3_tv_season_info)
             self._taskManager.run_tasks()
 
         ### ------------------------ 查找剧集信息 -------------------- ###
         # Step 5:  查找剧集信息
 
         # 获取剧集信息
-        media_list, folder_media_list = Helper.create_tv_media_list(
-            first_number,
-            task_2_tv_info,
-            task_3_tv_season_info,
-            tv_id,
-            self.config,
-        )
+        media_list = []
+        for task_3_tv_season_info in tasks_3_tv_season_info:
+            season_media_list, _ = Helper.create_tv_media_list(
+                first_number,
+                task_2_tv_info,
+                task_3_tv_season_info,
+                tv_id,
+                self.config,
+            )
+            media_list.extend(season_media_list)
 
         # 输出剧集信息
         Message.print_tv_info(

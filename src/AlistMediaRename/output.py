@@ -209,6 +209,67 @@ class Message:
                     return int(number)
 
     @staticmethod
+    def parse_number_ranges(value: str, maximum: int) -> list[int]:
+        """解析以逗号和连字符表示的序号范围。"""
+
+        if not value.strip():
+            raise ValueError("请输入至少一个序号")
+
+        numbers: set[int] = set()
+        for item in value.split(","):
+            item = item.strip()
+            if not item:
+                raise ValueError("序号之间不能存在空项")
+
+            if "-" not in item:
+                if not item.isdigit():
+                    raise ValueError(f"无效序号: {item}")
+                number = int(item)
+                if number > maximum:
+                    raise ValueError(f"序号超出范围: {number}")
+                numbers.add(number)
+                continue
+
+            if item.count("-") != 1:
+                raise ValueError(f"无效范围: {item}")
+
+            start_text, end_text = (part.strip() for part in item.split("-"))
+            if not start_text.isdigit() or (end_text and not end_text.isdigit()):
+                raise ValueError(f"无效范围: {item}")
+
+            start = int(start_text)
+            end = int(end_text) if end_text else maximum
+            if start > maximum or end > maximum or start > end:
+                raise ValueError(f"序号范围错误: {item}")
+            numbers.update(range(start, end + 1))
+
+        return sorted(numbers)
+
+    @staticmethod
+    def select_numbers(length: int) -> list[int]:
+        """根据查询结果选择一个或多个序号。"""
+
+        if length == 1:
+            return [0]
+
+        while True:
+            value = Prompt.ask(
+                Message.ask(
+                    "查询到以上季度，请输入对应[green]序号[/green]"
+                    "（如 1,2 或 1-3），输入[red] n [/red]退出",
+                    printf=False,
+                )
+            )
+            if value.lower() == "n":
+                Message.congratulation("See you!")
+                Message.exit()
+
+            try:
+                return Message.parse_number_ranges(value, length - 1)
+            except ValueError as error:
+                Message.error(str(error))
+
+    @staticmethod
     def print_rename_result(
         tasks_4_video_rename_list: list["ApiTask"],
         tasks_4_subtitle_rename_list: list["ApiTask"],
