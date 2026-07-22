@@ -78,3 +78,17 @@ def test_selected_seasons_are_combined_in_season_order():
         "测试剧集-S02E02.第2集.mkv",
     ]
     assert all(task.full_path.startswith("/测试剧集/") for task in rename_tasks)
+
+
+def test_folder_rename_replaces_the_entire_name_when_it_contains_a_dot():
+    config = Config()
+    _, folder_media_list = Helper.create_tv_media_list(
+        "1-", _tv_info_task(), _season_task(1, [1]), "123", config
+    )
+
+    rename_task = Helper.create_folder_rename_list(
+        Folder(path="/影视/测试剧集.1080p/"), folder_media_list
+    )[0]
+
+    assert rename_task.original_name == "测试剧集.1080p"
+    assert rename_task.target_name == "测试剧集 (2020)"
