@@ -43,6 +43,7 @@ class ApiTask:
         func: Callable[..., httpx.Request],
         args: tuple,
         kwargs: dict,
+        operation: str,
         response_parser: Callable[..., ApiResponse],
         output_parser: Callable[..., None],
         raise_error: bool,
@@ -51,6 +52,7 @@ class ApiTask:
         self.func: Callable[..., httpx.Request] = func  # API请求函数
         self._args: tuple = args  # 函数参数
         self._kwargs: dict = kwargs  # 函数关键字参数
+        self.operation = operation  # 任务类型，如 alist.rename
 
         self.response_parser: Callable[..., ApiResponse] = response_parser  # 解析器
         self.output_parser: Callable[..., None] = output_parser  # 输出解析器
@@ -114,6 +116,7 @@ class ApiTask:
                     func,
                     args,
                     kwargs,
+                    f"{api_response_parser}.{func.__name__}",
                     ApiResponseParser.parser(api_response_parser),
                     OutputParser.parser(output_parser),
                     raise_error,
@@ -210,6 +213,8 @@ class TaskManager:
         self.verbose = verbose
         self.raise_error = True
         self.limit_rate = limit_rate
+        self.rename_interval = 0.0
+        self._last_rename_batch_completed: float | None = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -246,6 +251,52 @@ class TaskManager:
 
     async def _execute(self) -> list[ApiResponse]:
         """执行所有任务"""
+
+        if self.rename_interval <= 0:
+            results = await self._execute_concurrently(self.tasks_pending)
+        else:
+            rename_tasks = [
+                task for task in self.tasks_pending if task.operation == "alist.rename"
+            ]
+            other_tasks = [
+                task
+                for task in self.tasks_pending
+                if task.operation != "alist.rename"
+            ]
+
+            # -t 只作用于 Alist 的重命名任务；其余请求保持原有的异步执行方式。
+            if other_tasks:
+                await self._execute_concurrently(other_tasks)
+
+            if rename_tasks:
+                batch_size = (
+                    self.limit_rate if self.limit_rate > 0 else len(rename_tasks)
+                )
+                loop = asyncio.get_running_loop()
+                for start in range(0, len(rename_tasks), batch_size):
+                    if self._last_rename_batch_completed is not None:
+                        elapsed = loop.time() - self._last_rename_batch_completed
+                        remaining = self.rename_interval - elapsed
+                        if remaining > 0:
+                            logger.debug(f"等待下一批重命名任务: {remaining:.2f}s")
+                            await asyncio.sleep(remaining)
+
+                    batch = rename_tasks[start : start + batch_size]
+                    logger.debug(f"执行重命名任务批次: {len(batch)} 项")
+                    await self._execute_concurrently(batch)
+                    self._last_rename_batch_completed = loop.time()
+
+            results = [task.response for task in self.tasks_pending]
+
+        self.tasks_done.extend(self.tasks_pending)  # 保存结果
+        self.tasks_pending.clear()  # 清空任务列表
+        return results
+
+    async def _execute_concurrently(
+        self, tasks_pending: list[ApiTask]
+    ) -> list[ApiResponse]:
+        """按当前并发限制执行一组任务。"""
+
         if self.limit_rate and self.limit_rate > 0:
             semaphore = asyncio.Semaphore(self.limit_rate)
 
@@ -253,14 +304,10 @@ class TaskManager:
                 async with semaphore:
                     return await task.send(self._async_client)
 
-            tasks = [send_with_semaphore(task) for task in self.tasks_pending]
+            tasks = [send_with_semaphore(task) for task in tasks_pending]
         else:
-            tasks = [task.send(self._async_client) for task in self.tasks_pending]
+            tasks = [task.send(self._async_client) for task in tasks_pending]
 
-        results: list[ApiResponse] = await asyncio.gather(*tasks)
-        self.tasks_done.extend(self.tasks_pending)  # 保存结果
-        self.tasks_pending.clear()  # 清空任务列表
-        return results
-
+        return await asyncio.gather(*tasks)
 
 taskManager = TaskManager()

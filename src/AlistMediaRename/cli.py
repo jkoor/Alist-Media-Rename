@@ -37,7 +37,18 @@ install(show_locals=False, suppress=[click])
 )
 @click.option("-p", "--password", type=str, help="文件访问密码(可选)")
 @click.option(
-    "-r", "--limit-rate", type=int, default=None, help="限制api请求速率(可选)"
+    "-r",
+    "--limit-rate",
+    type=click.IntRange(min=0),
+    default=None,
+    help="限制任务并发数，0 为不限制（可选）",
+)
+@click.option(
+    "-t",
+    "--rename-interval",
+    type=click.FloatRange(min=0),
+    default=None,
+    help="每批 Alist 重命名任务完成后的等待时间（秒）",
 )
 @click.option(
     "--folder/--no-folder", default=None, help="是否对父文件夹进行重命名(可选)"
@@ -58,6 +69,7 @@ def start(
     number: str,
     password: str,
     limit_rate: int,
+    rename_interval: float,
     suffix: str,
     verbose: bool,
     log_file: Union[str, None] = None,
@@ -75,7 +87,8 @@ def start(
     :param movie: 搜索电影而不是剧集
     :param number: 指定从第几集开始重命名
     :param password: 文件访问密码
-    :param limit_rate: 限制api请求速率
+    :param limit_rate: 限制任务并发数
+    :param rename_interval: 重命名任务批次间隔时间（秒）
     :param suffix: 在文件名后添加自定义后缀
     :param verbose: 显示详细信息
     """
@@ -86,7 +99,7 @@ def start(
         log_file = f"log_file_{time.strftime('%Y%m%d_%H%M%S')}.log"  # 默认日志文件名格式: log_file_YYYYMMDD_HHMMSS.log
     setup_logging(verbose=verbose, file_log_path=log_file)
     logger.info(
-        f"应用启动，参数: keyword='{keyword}', config='{config}', dir='{dir}', folder='{folder}',id={id}, movie={movie}, number='{number}', password='{password_str}', verbose={verbose}, log_file='log_file', log_level='log_level'"
+        f"应用启动，参数: keyword='{keyword}', config='{config}', dir='{dir}', folder='{folder}',id={id}, movie={movie}, number='{number}', password='{password_str}', limit_rate={limit_rate}, rename_interval={rename_interval}, verbose={verbose}, log_file='log_file', log_level='log_level'"
     )
 
     try:
@@ -110,6 +123,11 @@ def start(
         # 设置API请求速率限制
         if limit_rate is not None:
             amr.config.settings.amr.limit_rate = limit_rate
+            amr._taskManager.limit_rate = limit_rate
+
+        # 设置 Alist 重命名任务批次间隔
+        if rename_interval is not None:
+            amr._taskManager.rename_interval = rename_interval
 
         logger.debug("Amr 实例初始化完成")
 
