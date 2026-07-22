@@ -7,3 +7,5 @@ uv.lock
 .env
 /tmp
 log_file_*.log
+*.yaml
+tmp_*.py
